@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -25,6 +22,7 @@ var excludedPopulationFields = []string{"5", "10", "15", "30", "100"}
 type Args struct {
 	VariantsOfInterest string `arg:"-v,help:vcf of variants of interest"`
 	PopulationCoverage string `arg:"-p,help:path to population coverage files in gnomAD/ExAC format as a template such as: coverage/gnomad.exomes.r2.0.2.chr$chrom.coverage.txt.gz "`
+	OutputPrefix       string `arg:"-o,help:prefix for output json files"`
 	GeneBed            string `arg:"positional,required,help:path to bed file of exons with gene names"`
 	PerBase            string `arg:"positional,required,help:path to per-base.bed.gz from mosdepth"`
 	// GeneList...
@@ -55,10 +53,20 @@ type Stats struct {
 	PercentClinvarVariantsUnder7X               float32
 }
 
+// Gene contains the per-gene information including the full per-base exon info.
 type Gene struct {
 	Name            string `json:"gene"`
 	Chrom           string `json:"chrom"`
 	Exons           []Exon `json:"exons"`
+	SampleStats     *Stats `json:"stats"`
+	PopulationStats *Stats `json:"popstats"`
+}
+
+// SmallGene does not contain the per-base info.
+// TODO: don't need popstats for every sample.
+type SmallGene struct {
+	Name            string `json:"gene"`
+	Chrom           string `json:"chrom"`
 	SampleStats     *Stats `json:"stats"`
 	PopulationStats *Stats `json:"popstats"`
 }
@@ -85,6 +93,7 @@ func (g *Gene) CalcStats() {
 		exonicBases += exon.Length()
 		//log.Println(exon.PopulationDepths["20"])
 		if len(exon.Depths) != len(exon.PopulationDepths["20"]) {
+			log.Println(len(exon.Depths), len(exon.PopulationDepths["20"]))
 			panic("expected equal-length depths")
 		}
 		off := exon.Start - exon.DataStart
@@ -158,56 +167,6 @@ func mustAtoi(a string) int {
 	}
 }
 
-func readDepthLines(path string, chrom string, exon *Exon) {
-	args := []string{path}
-	args = append(args, fmt.Sprintf("%s:%d-%d", chrom, exon.Start+1, exon.Stop))
-	cmd := exec.Command("tabix", args...)
-	cmd.Stderr = os.Stderr
-	stdout, err := cmd.StdoutPipe()
-	check(err)
-	check(cmd.Start())
-
-	b := bufio.NewReader(stdout)
-	hasColon := true // are we parsing from quantized e.g. 7:10, or per-base. e.g. 7
-
-	for {
-		line, err := b.ReadString('\n')
-		if len(line) != 0 {
-			toks := strings.Split(strings.TrimSpace(line), "\t")
-			if toks[3] == "0" || toks[3] == "0:1" {
-				continue
-			}
-			c := toks[0]
-			s := mustAtoi(toks[1])
-			e := mustAtoi(toks[2])
-			var v int
-
-			if hasColon {
-				ab := strings.SplitN(toks[3], ":", 2)
-				if len(ab) == 1 {
-					hasColon = false
-				}
-				v = mustAtoi(ab[0])
-			} else {
-				v = mustAtoi(toks[3])
-			}
-
-			if exon.Overlaps(c, s, e) {
-				exon.Update(c, s, e, v)
-			}
-		}
-		if err == io.EOF {
-			break
-		}
-		check(err)
-	}
-	check(cmd.Wait())
-	if len(exon.Depths) == 0 {
-		exon.Depths = make([]uint16, exon.Length())
-	}
-
-}
-
 func contains(needle string, haystack []string) bool {
 	for _, h := range haystack {
 		if h == needle {
@@ -217,59 +176,19 @@ func contains(needle string, haystack []string) bool {
 	return false
 }
 
-func readGenes(f string, perbase string, soi_path string, pop_coverage_tmpl string, geneNames []string) map[string]*Gene {
-	fh, err := xopen.Ropen(f)
-	check(err)
-	var soi, last_pop *bix.Bix
-	var last_pop_chrom string
-	if soi_path != "" {
-		soi, err = bix.New(soi_path)
-	}
-	genes := make(map[string]*Gene, 20)
-	for {
-		line, err := fh.ReadString('\n')
-		if len(line) != 0 {
-			toks := strings.SplitN(strings.TrimSpace(line), "\t", 6)
-			if !contains(toks[3], geneNames) {
-				continue
-			}
-			gene, ok := genes[toks[3]]
-			if !ok {
-				gene = &Gene{Chrom: toks[0], Name: toks[3]}
-			} else {
-				if gene.Chrom != toks[0] {
-					log.Printf("warning genes from multiple chromosomes found for %s", toks[3])
-					continue
-				}
-			}
-			e := Exon{Start: mustAtoi(toks[1]), Stop: mustAtoi(toks[2])}
-			e.DataStart = e.Start
-			readDepthLines(perbase, gene.Chrom, &e)
-			if soi != nil {
-				readVariants(soi, gene.Chrom, &e)
-			}
-			if last_pop == nil || gene.Chrom != last_pop_chrom {
-				last_pop, err = bix.New(strings.Replace(pop_coverage_tmpl, "$chrom", gene.Chrom, 1))
-				check(err)
-				last_pop_chrom = gene.Chrom
-			}
-			readPopDepths(last_pop, gene.Chrom, &e)
-			gene.Exons = append(gene.Exons, e)
-			genes[toks[3]] = gene
+func writeBigGenes(output_prefix string, big map[string]*Gene, small map[string]*SmallGene) {
+	for g, v := range big {
+		v.CalcStats()
+		small[g] = &SmallGene{Name: v.Name, Chrom: v.Chrom, SampleStats: v.SampleStats, PopulationStats: v.PopulationStats}
 
-		}
-		if err == io.EOF {
-			break
-		}
+		f, err := xopen.Wopen(output_prefix + v.Name + ".json")
 		check(err)
+		j, err := json.Marshal(v)
+		check(err)
+		f.Write(j)
+		f.Close()
 	}
 
-	for _, g := range genes {
-		g.CalcStats()
-	}
-
-	fh.Close()
-	return genes
 }
 
 func (e Exon) Length() int {
@@ -300,9 +219,48 @@ func (i ip) Chrom() string {
 	return i.chrom
 }
 
+func readDepthLines(b *bix.Bix, chrom string, exon *Exon) {
+	iter, err := b.FastQuery(ip{chrom: chrom, start: exon.Start, stop: exon.Stop})
+	check(err)
+	hasColon := true // are we parsing from quantized e.g. 7:10, or per-base. e.g. 7
+	for {
+		r, err := iter.Next()
+		if r != nil {
+			var iv = r.(*parsers.Interval)
+			if bytes.Compare(iv.Fields[3], []byte{'0'}) == 0 || bytes.Compare(iv.Fields[3], []byte{'0', ':', '1'}) == 0 {
+				continue
+			}
+			//toks := []string{string(iv.Fields[0]), string(iv.Fields[1]), string(iv.Fields[2]), string(iv.Fields[3])}
+			c := string(iv.Fields[0])
+			s := mustAtoi(string(iv.Fields[1]))
+			e := mustAtoi(string(iv.Fields[2]))
+			var v int
+			var t3 = string(iv.Fields[3])
+
+			if hasColon {
+				ab := strings.SplitN(t3, ":", 2)
+				if len(ab) == 1 {
+					hasColon = false
+				}
+				v = mustAtoi(ab[0])
+			} else {
+				v = mustAtoi(t3)
+			}
+
+			if exon.Overlaps(c, s, e) {
+				exon.Update(c, s, e, v)
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		check(err)
+	}
+}
+
 func readVariants(b *bix.Bix, chrom string, exon *Exon) {
 
-	iter, err := b.Query(ip{chrom: chrom, start: exon.Start, stop: exon.Stop})
+	iter, err := b.FastQuery(ip{chrom: chrom, start: exon.Start, stop: exon.Stop})
 	check(err)
 
 	for {
@@ -341,6 +299,71 @@ func readVariants(b *bix.Bix, chrom string, exon *Exon) {
 
 }
 
+func readGenes(f string, perbase string, soi_path string, pop_coverage_tmpl string, output_prefix string) map[string]*SmallGene {
+	fh, err := xopen.Ropen(f)
+	check(err)
+
+	bixperbase, err := bix.New(perbase)
+	check(err)
+
+	var soi, last_pop *bix.Bix
+	var last_pop_chrom string
+	if soi_path != "" {
+		soi, err = bix.New(soi_path)
+	}
+	smallgenes := make(map[string]*SmallGene, 20)
+	// biggenes is per gene, per-base info.
+	biggenes := make(map[string]*Gene, 20)
+	var last_chrom = ""
+	var k = 0
+	for {
+		line, err := fh.ReadString('\n')
+		if len(line) != 0 {
+			k += 1
+			if k%5000 == 0 {
+				log.Println(k, line)
+			}
+			toks := strings.SplitN(strings.TrimSpace(line), "\t", 6)
+			if toks[0] != last_chrom && last_chrom != "" {
+				log.Println(last_chrom)
+				writeBigGenes(output_prefix, biggenes, smallgenes)
+				biggenes = make(map[string]*Gene, 20)
+			}
+			last_chrom = toks[0]
+			gene, ok := biggenes[toks[3]]
+			if !ok {
+				gene = &Gene{Chrom: toks[0], Name: toks[3]}
+			} else {
+				if gene.Chrom != toks[0] {
+					log.Printf("warning genes from multiple chromosomes found for %s", toks[3])
+					continue
+				}
+			}
+			e := Exon{Start: mustAtoi(toks[1]), Stop: mustAtoi(toks[2])}
+			e.DataStart = e.Start
+			readDepthLines(bixperbase, gene.Chrom, &e)
+			if soi != nil {
+				readVariants(soi, gene.Chrom, &e)
+			}
+			if (last_pop == nil || gene.Chrom != last_pop_chrom) && pop_coverage_tmpl != "" {
+				last_pop, err = bix.New(strings.Replace(pop_coverage_tmpl, "$chrom", gene.Chrom, 1))
+				check(err)
+				last_pop_chrom = gene.Chrom
+			}
+			readPopDepths(last_pop, gene.Chrom, &e)
+			gene.Exons = append(gene.Exons, e)
+			biggenes[toks[3]] = gene
+
+		}
+		if err == io.EOF {
+			break
+		}
+		check(err)
+	}
+
+	fh.Close()
+	return smallgenes
+}
 func (exon *Exon) initDepths() {
 	exon.PopulationDepths = make(map[string][]float32)
 	for _, k := range populationFields {
@@ -353,7 +376,10 @@ func (exon *Exon) initDepths() {
 }
 
 func readPopDepths(b *bix.Bix, chrom string, exon *Exon) {
-	iter, err := b.Query(ip{chrom: chrom, start: exon.DataStart, stop: exon.DataStart + len(exon.Depths) - 1})
+	if b == nil {
+		return
+	}
+	iter, err := b.FastQuery(ip{chrom: chrom, start: exon.DataStart, stop: exon.DataStart + len(exon.Depths) - 1})
 	check(err)
 	exon.initDepths()
 
@@ -433,27 +459,24 @@ func (l *Exon) Update(chrom string, start, end, value int) {
 	}
 }
 
-var geneNames = []string{
-	"MECP2",
-}
-
 type Genes struct {
 	// keyed by gene-name
 	Genes map[string][]Gene `json:"exons,omitempty"`
 }
 
 func main() {
-	cli := &Args{}
+	cli := &Args{OutputPrefix: "seqcover-"}
 	arg.MustParse(cli)
 
-	genes := readGenes(cli.GeneBed, cli.PerBase, cli.VariantsOfInterest, cli.PopulationCoverage, geneNames)
-
-	// TODO: cull variants of interest to those that overlap any exon.
-	//meta.Coverage = readCoverage(cli.PopulationCoverage, meta.Exons)
-
-	//v, err := json.MarshalIndent(genes, "", "  ")
+	genes := readGenes(cli.GeneBed, cli.PerBase, cli.VariantsOfInterest, cli.PopulationCoverage, cli.OutputPrefix)
 	v, err := json.Marshal(genes)
-	check(err)
-	fmt.Println(string(v))
+	if err != nil {
+		panic(err)
+	}
+	if fh, err := xopen.Wopen(cli.OutputPrefix + "summary.json"); err != nil {
+		panic(err)
+	} else {
+		fh.Write(v)
+	}
 
 }
