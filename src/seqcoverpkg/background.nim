@@ -69,7 +69,7 @@ proc summarize_block(d4s: var seq[D4], chrom:string, start:uint32, stop:uint32, 
 proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq[int]) =
   let block_size = 1_000_000'u32
   let info = d4s[0].chromosomes
-  var chroms = newSeq[tuple[name:string, length:int]](info.len)
+  var chroms = newSeqOfCap[tuple[name:string, length:int]](info.len)
   for k, v in info: chroms.add((k, v.int))
 
   discard outputDir.existsOrCreateDir
