@@ -76,6 +76,17 @@ proc read_d4s*(paths: seq[string]): seq[D4] =
     if not result[i].open(p):
       raise newException(OSError, "[seqcover] couldn't open d4 file:" & p)
 
+proc read_d4s_to_table*(paths: seq[string]): TableRef[string, D4] =
+  result = newTable[string, D4]()
+  for p in paths:
+    let name = splitFile(p).name
+    if name in result:
+      raise newException(OSError, "[seqcover] repeated d4 name:" & p)
+    var d:D4
+    if not d.open(p):
+      raise newException(OSError, "[seqcover] couldn't open d4 file:" & p)
+    result[name] = d
+
 proc check_same_lengths*(d4s: seq[D4], chrom: string, length: uint32) =
   for d in d4s:
     doAssert d.chromosomes[chrom] == length, "[seqcover] differing chromosome lengths among samples"
@@ -85,7 +96,7 @@ when isMainModule:
   when true:
     get_gene("chr2:22,000,000-24,000,000")
 
-    for gene in get_genes(@["KCNQ2", "MUC5B", "XXXXX", "chr2:22000000-24000000"]):
+    for gene in get_genes(@["KCNQ2", "SCN8A", "PIGA"]):
       echo "gene"
       for t in gene.transcripts:
         echo "\t", t
