@@ -46,4 +46,6 @@ suite "transcript suite":
     var o = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
 
     echo u.translate(o)
+    o = Transcript(txstart:55, cdsstart:85, position: @[[89, 94], [132, 137]], cdsend: 137, txend: 152)
+    echo u.translate(o)
     #echo cast[seq[byte]](coords[0].g)

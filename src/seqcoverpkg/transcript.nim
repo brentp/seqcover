@@ -100,13 +100,19 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
   for i, o_exon in o.position:
     var u_off = extend + (result.cdsstart - result.txstart)
     # increase u_off until we find the u_exon that encompasses this one.
-    for u_i in 1 ..< o.position.len:
+    var u_i = 1
+    while u_i < o.position.len:
       let u_exon = u.position[u_i]
       if u_exon[0] >= o_exon[1]: break
       doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1]
 
       u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
       u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
+      u_i += 1
+    u_i -= 1
+    if o.position.len > 0:
+      u_off += o.position[u_i][0] - u.position[u_i][0]
+
 
     result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
 
