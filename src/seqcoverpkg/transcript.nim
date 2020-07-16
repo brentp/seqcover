@@ -82,39 +82,46 @@ proc union*(trs:seq[Transcript]): Transcript =
   if result.position.len == 0 or result.position[^1] != A:
     result.position.add(A)
 
-#[
-proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): tuple[x: seq[array[2, int]], g: seq[array[2, int]]] =
+proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
   ## coordinates and genomic coordinates.
 
   # exons and UTRs
-  var ug_exons: seq[array[2, int]]
   var extend = extend.int
+  result.transcript = o.transcript
+  result.strand = o.strand
+  result.`chr` = o.`chr`
 
-  result.g.add(o.UTR_left)
-  result.g[0] = max(0, result.g[0] - extend)
-  for p in o.position:
-    result.g.add([max(result.g[^1][1], p[0] - extend), p[1]])
+  result.txstart = (o.txstart - u.txstart) + extend
+  result.cdsstart = (o.cdsstart - u.txstart) + extend
 
-  result.g.add(o.UTR_right)
+  # todo: this in n^2 (but n is small. iterate over uexons first and calc
+  # offsets once)?
+  for i, o_exon in o.position:
+    var u_off = extend + (result.cdsstart - result.txstart)
+    # increase u_off until we find the u_exon that encompasses this one.
+    for u_i in 1 ..< o.position.len:
+      let u_exon = u.position[u_i]
+      if u_exon[0] >= o_exon[1]: break
+      doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1]
 
+      u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
+      u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
 
-  ug_exons.add(u.UTR_left)
-  ug_exons.add(u.position)
-  ug_exons.add(u.UTR_right)
+    result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
 
-  doAssert u.cdsstart <= o.cdsstart
-  doAssert u.cdsend >= o.cdsend
-
-  uoff = newSeq[int](ug_exons.len)
-  uoff[0] = 0
-  for i, e in ug_exons:
-    if i == 0: continue
-    uoff[i] = uoff[i - 1] + ug_exons[
-
-  for oe in result.g:
-
-]#
+  # iterate over entire u so we can get offsets.
+  #[
+  var u_off = extend + (result.cdsstart - result.txstart)
+  for u_i in 1..<u.position.len:
+    let u_exon = o.position[u_i]
+    u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
+    u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
+  if u.position.len > 0:
+    u_off += u.position[^1][1] - u.position[^1][0]
+  ]#
+  result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
+  result.txend = (o.txend - o.cdsend) + result.cdsend
 
 type plot_coords* = object
   x*: seq[uint32]
@@ -184,7 +191,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
     result.g.add(toSeq(left..<right))
 
     #result.x.add(toSeq((lastx..<(lastx + size))))
-    echo chrom, " ", left, "-", right
+    #echo chrom, " ", left, "-", right
 
     for sample, dp in dps.mpairs:
       result.depths[sample].add(int32.low)

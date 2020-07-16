@@ -37,7 +37,13 @@ suite "transcript suite":
         n += p[1] - p[0]
       stderr.write_line "size:", $n
       coords.add(t.exon_plot_coords(d4s, 10))
-    echo ((%coords))
+    #echo ((%coords))
 
 
+  test "translate":
+
+    var u = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
+    var o = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
+
+    echo u.translate(o)
     #echo cast[seq[byte]](coords[0].g)

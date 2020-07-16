@@ -97,9 +97,6 @@ when isMainModule:
     get_gene("chr2:22,000,000-24,000,000")
 
     for gene in get_genes(@["KCNQ2", "SCN8A", "PIGA"]):
-      echo "gene"
-      for t in gene.transcripts:
-        echo "\t", t
       echo "Union"
       echo gene.transcripts.union
 
