@@ -13,7 +13,6 @@ suite "transcript suite":
     echo "UTR3:", tr.UTR3
     var dps = newTable[string, D4]()
     var res = tr.exon_plot_coords(dps, 10)
-    echo res
     check res.x.len == res.g.len
 
 
@@ -45,7 +44,14 @@ suite "transcript suite":
     var u = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
     var o = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
 
-    echo u.translate(o)
+    var t = u.translate(o)
+    check t.position == @[[40, 51], [71, 86]]
+    check t.txstart == 10
+    check t.txend == 101
+
     o = Transcript(txstart:55, cdsstart:85, position: @[[89, 94], [132, 137]], cdsend: 137, txend: 152)
-    echo u.translate(o)
+    t = u.translate(o)
+    check t.position ==  @[[44, 49], [81, 86]]
+    check t.txstart == 10
+    check t.txend == 101
     #echo cast[seq[byte]](coords[0].g)

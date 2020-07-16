@@ -110,22 +110,13 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
       u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
       u_i += 1
     u_i -= 1
+
+    # handle o exon starting after start of u-exon
     if o.position.len > 0:
       u_off += o.position[u_i][0] - u.position[u_i][0]
 
-
     result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
 
-  # iterate over entire u so we can get offsets.
-  #[
-  var u_off = extend + (result.cdsstart - result.txstart)
-  for u_i in 1..<u.position.len:
-    let u_exon = o.position[u_i]
-    u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
-    u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
-  if u.position.len > 0:
-    u_off += u.position[^1][1] - u.position[^1][0]
-  ]#
   result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
   result.txend = (o.txend - o.cdsend) + result.cdsend
 
