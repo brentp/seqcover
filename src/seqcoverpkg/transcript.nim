@@ -104,7 +104,7 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
     while u_i < o.position.len:
       let u_exon = u.position[u_i]
       if u_exon[0] >= o_exon[1]: break
-      doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1]
+      #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
 
       u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
       u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
@@ -128,71 +128,82 @@ type plot_coords* = object
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
   result = json.`%`(table[])
 
-proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10): plot_coords =
+proc get_chrom(chrom:string, dp:D4): string =
+  ## add or remove "chr" to match chromosome names.
+  if chrom in dp.chromosomes: return chrom
+  if chrom[0] != 'c' and ("chr" & chrom) in dp.chromosomes:
+    result = "chr" & chrom
+  elif chrom[0] == 'c' and chrom.len > 3 and chrom[1] == 'h' and chrom[2] == 'r' and chrom[3..chrom.high] in dp.chromosomes:
+    result = chrom[3..chrom.high]
+  else:
+    raise newException(KeyError, "chromosome not found:" & chrom)
+
+proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10, utrs:bool=true): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
   ## introns. g: is the actual coordinates.
   var chrom = tr.`chr`
   var dp: D4
-  var found = false
   for k, v in dps:
     dp = v
-    found = true
     break
-  if found and (chrom notin dp.chromosomes):
-    if chrom[0] != 'c' and "chr" & chrom in dp.chromosomes:
-      chrom = "chr" & chrom
-    elif chrom[0] == 'c' and chrom.len > 3 and chrom[1] == 'h' and chrom[2] == 'r' and chrom[3..chrom.high] in dp.chromosomes:
-      chrom = chrom[3..chrom.high]
-    else:
-      raise newException(KeyError, "chromosome not found:" & chrom)
+  if dps.len > 0: chrom = chrom.get_chrom(dp)
+  let left = max(0, tr.txstart - extend.int)
 
   result.depths = newTable[string, seq[int32]]()
 
-  let left = max(0, tr.txstart - extend.int)
-  let right = tr.txend + extend.int
+  var  lutr = tr.UTR_left
+  lutr[0] = max(0, lutr[0] - extend.int)
+  var rutr = tr.UTR_right
+  rutr[1] += extend.int
 
-  var lpos: array[2,int]
-  var rpos: array[2,int]
-  if tr.strand >= 0:
-    lpos = tr.UTR5
-    lpos[0] -= extend.int
-    rpos = tr.UTR3
-    rpos[1] += extend.int
-  else:
-    lpos = tr.UTR3
-    lpos[1] += extend.int
-    rpos = tr.UTR5
-    rpos[0] -= extend.int
+  if utrs:
+    result.g = toSeq(lutr[0].uint32..< lutr[1].uint32)
+    result.x = toSeq(0'u32 ..< result.g.len.uint32)
+    for sample, dp in dps.mpairs:
+        result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
 
-  result.g = toSeq(max(0, lpos[0]).uint32..< lpos[1].uint32)
-  #result.x = toSeq(0'u32 ..< result.g.len.uint32)
-  for sample, dp in dps.mpairs:
-      result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
+  var lastx:uint32
+  var lastg:uint32
 
-  var exons = tr.position
-  exons.add(rpos)
+  for i, p in tr.position:
 
-  for p in exons:
+    lastx = result.x[^1] + 1
+    lastg = result.g[^1] + 1
 
-    #var lastx = result.x[^1] + 1
-    var lastg = result.g[^1] + 1
+    # insert value for missing data to interrupt plot
+    if i > 0:
+      result.x.add(result.x[^1])
+      result.g.add(result.g[^1])
 
-    #result.x.add(result.x[^1])
-    result.g.add(result.g[^1])
-
-    let left = max(lastg, p[0].uint32 - extend)
-    let right = max(left, p[1].uint32 + extend)
+    let left = max(lastg, p[0].uint32 - (if i == 0: 0'u32 else: extend))
+    let right = max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend))
     let size = right - left
-    if size == 0: continue
-    result.g.add(toSeq(left..<right))
+    if size <= 0: continue
 
-    #result.x.add(toSeq((lastx..<(lastx + size))))
-    #echo chrom, " ", left, "-", right
+    result.g.add(toSeq(left..<right))
+    result.x.add(toSeq((lastx..<(lastx + size))))
 
     for sample, dp in dps.mpairs:
-      result.depths[sample].add(int32.low)
+      if i > 0:
+        result.depths[sample].add(int32.low)
       result.depths[sample].add(dp.values(chrom, left, right))
+
+  if utrs:
+    lastx = result.x[^1] + 1
+    lastg = result.g[^1] + 1
+    let left = max(lastg, rutr[0].uint32)
+    let right = max(left, rutr[1].uint32 + extend)
+    let size = right - left
+    if size > 0:
+      result.g.add(toSeq(left..<right))
+      result.x.add(toSeq((lastx..<(lastx + size))))
+
+    for sample, dp in dps.mpairs:
+      result.depths[sample].add(dp.values(chrom, left, right))
+
+  doAssert result.x.len == result.g.len
+
 
 
 proc plot_data*(g:Gene): GenePlotData =

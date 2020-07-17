@@ -14,6 +14,8 @@ suite "transcript suite":
     var dps = newTable[string, D4]()
     var res = tr.exon_plot_coords(dps, 10)
     check res.x.len == res.g.len
+    for name, depth in res.depths.pairs:
+      check res.x.len == depth.len
 
 
   test "generate data":
@@ -36,7 +38,7 @@ suite "transcript suite":
         n += p[1] - p[0]
       stderr.write_line "size:", $n
       coords.add(t.exon_plot_coords(d4s, 10))
-    #echo ((%coords))
+    echo ((%coords))
 
 
   test "translate":
