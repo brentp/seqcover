@@ -38,10 +38,13 @@ type Gene* = object
   description*: string
   transcripts*: seq[Transcript]
 
-type GenePlotData* = object
+type plot_coords* = object
   x*: seq[uint32]
-  depths*: TableRef[string, seq[uint32]]
+  depths*: TableRef[string, seq[int32]]
   g*: seq[uint32]
+
+type GenePlotData* = object
+  plot_coords*: plot_coords
   symbol*: string
   description*: string
   unioned_transcript*: Transcript
@@ -120,10 +123,6 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
   result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
   result.txend = (o.txend - o.cdsend) + result.cdsend
 
-type plot_coords* = object
-  x*: seq[uint32]
-  depths*: TableRef[string, seq[int32]]
-  g*: seq[uint32]
 
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
   result = json.`%`(table[])
@@ -205,13 +204,12 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
   doAssert result.x.len == result.g.len
 
 
-
-proc plot_data*(g:Gene): GenePlotData =
+proc plot_data*(g:Gene, d4s: TableRef[string, D4], extend:uint32=10, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
   result.transcripts = g.transcripts
   result.unioned_transcript = g.transcripts.union
-
+  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
 
 proc `$`*(t:Transcript): string =
   result = &"Transcript{system.`$`(t)}"
