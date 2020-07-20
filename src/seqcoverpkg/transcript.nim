@@ -92,29 +92,29 @@ proc union*(trs:seq[Transcript]): Transcript =
   if result.position.len == 0 or result.position[^1] != A:
     result.position.add(A)
 
-proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
+proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
   ## coordinates and genomic coordinates.
 
-  # exons and UTRs
   var extend = extend.int
   result.transcript = o.transcript
   result.strand = o.strand
   result.`chr` = o.`chr`
 
-  result.txstart = (o.txstart - u.txstart) + min(1000'u32, extend)
-  result.cdsstart = (o.cdsstart - u.txstart) + min(1000'u32, extend)
+  result.txstart = (o.txstart - u.txstart) + min(1000, extend.int)
+  result.cdsstart = (o.cdsstart - u.txstart) + min(1000, extend.int)
 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc
   # offsets once)?
   for i, o_exon in o.position:
-    var u_off = extend + (result.cdsstart - result.txstart)
+    var u_off = result.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
     # increase u_off until we find the u_exon that encompasses this one.
     var u_i = 1
     while u_i < o.position.len:
       let u_exon = u.position[u_i]
       if u_exon[0] >= o_exon[1]: break
       #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
+      u_off += max_gap.int
 
       u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
       u_off += min(2 * extend, u_exon[0] - u.position[u_i - 1][1])
@@ -129,6 +129,7 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
 
   result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
   result.txend = (o.txend - o.cdsend) + result.cdsend
+  stderr.write_line &"u:{u}\no:{o}\nresult:{result}"
 
 
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
@@ -144,7 +145,7 @@ proc get_chrom(chrom:string, dp:D4): string =
   else:
     raise newException(KeyError, "chromosome not found:" & chrom)
 
-proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10, utrs:bool=true): plot_coords =
+proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, utrs:bool=true, max_gap:uint32=100): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
   ## introns. g: is the actual coordinates.
@@ -172,7 +173,6 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
   var lastx:uint32
   var lastg:uint32
   # gap should be min(100, position[i+1][0] - positoin[i][1])
-  let max_gap:uint32 = 100
 
   for i, p in tr.position:
 
@@ -224,7 +224,9 @@ proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=tr
   result.symbol = g.symbol
   result.transcripts = g.transcripts
   result.unioned_transcript = g.transcripts.union
+
   result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
+  result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend)
 
 proc `$`*(t:Transcript): string =
   result = &"Transcript{system.`$`(t)}"
