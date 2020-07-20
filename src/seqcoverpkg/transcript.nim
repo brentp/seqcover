@@ -17,6 +17,13 @@ type Transcript* = object
   txstart*:int
   txend*:int
 
+# see: https://github.com/nim-lang/Nim/issues/15025
+proc `%`*(a:array[2, int]): JsonNode =
+  result = newJArray()
+  result.add(newJint(a[0]))
+  result.add(newJint(a[1]))
+
+
 proc UTR5*(t:Transcript): array[2, int] =
   if t.strand >= 0:
     return [t.txstart, t.cdsstart]
@@ -157,7 +164,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
   rutr[1] += extend.int
 
   if utrs:
-    result.g = toSeq(lutr[0].uint32..< lutr[1].uint32)
+    result.g = toSeq(lutr[0].uint32 ..< lutr[1].uint32)
     result.x = toSeq(0'u32 ..< result.g.len.uint32)
     for sample, dp in dps.mpairs:
         result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
@@ -204,7 +211,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
   doAssert result.x.len == result.g.len
 
 
-proc plot_data*(g:Gene, d4s: TableRef[string, D4], extend:uint32=10, utrs:bool=true): GenePlotData =
+proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
   result.transcripts = g.transcripts
@@ -216,6 +223,3 @@ proc `$`*(t:Transcript): string =
 
 proc `$`*(g:Gene): string =
   result = &"Gene{system.`$`(g)}"
-
-
-
