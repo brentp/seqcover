@@ -102,8 +102,8 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32|uint=10): Transcript =
   result.strand = o.strand
   result.`chr` = o.`chr`
 
-  result.txstart = (o.txstart - u.txstart) + extend
-  result.cdsstart = (o.cdsstart - u.txstart) + extend
+  result.txstart = (o.txstart - u.txstart) + min(1000'u32, extend)
+  result.cdsstart = (o.cdsstart - u.txstart) + min(1000'u32, extend)
 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc
   # offsets once)?
@@ -154,14 +154,14 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
     dp = v
     break
   if dps.len > 0: chrom = chrom.get_chrom(dp)
-  let left = max(0, tr.txstart - extend.int)
+  let left = max(0, tr.txstart - min(1000, extend.int))
 
   result.depths = newTable[string, seq[int32]]()
 
   var  lutr = tr.UTR_left
-  lutr[0] = max(0, lutr[0] - extend.int)
+  lutr[0] = max(0, lutr[0] - min(1000, extend.int))
   var rutr = tr.UTR_right
-  rutr[1] += extend.int
+  rutr[1] += min(1000, extend.int)
 
   if utrs:
     result.g = toSeq(lutr[0].uint32 ..< lutr[1].uint32)
@@ -171,42 +171,50 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10
 
   var lastx:uint32
   var lastg:uint32
+  # gap should be min(100, position[i+1][0] - positoin[i][1])
+  let max_gap:uint32 = 100
 
   for i, p in tr.position:
 
     lastx = result.x[^1] + 1
     lastg = result.g[^1] + 1
 
-    # insert value for missing data to interrupt plot
-    if i > 0:
-      result.x.add(result.x[^1])
-      result.g.add(result.g[^1])
 
-    let left = max(lastg, p[0].uint32 - (if i == 0: 0'u32 else: extend))
-    let right = max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend))
+    # maxes and mins prevent going way past end of gene with huge extend value.
+    let left = max(lastg, p[0].uint32 - (if i == 0: 0'u32 else: min(p[0].uint32, extend)))
+    let right = min(rutr[1].uint32, max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend)))
+
     let size = right - left
     if size <= 0: continue
+
+    # insert value for missing data to interrupt plot
+    if i > 0:
+      let gap = min(max_gap, left - lastg)
+      if gap > 0:
+        lastx += gap
+        result.x.add(lastx)
+        result.g.add(0)
+        for sample, dp in dps.mpairs:
+          result.depths[sample].add(int32.low)
 
     result.g.add(toSeq(left..<right))
     result.x.add(toSeq((lastx..<(lastx + size))))
 
     for sample, dp in dps.mpairs:
-      if i > 0:
-        result.depths[sample].add(int32.low)
       result.depths[sample].add(dp.values(chrom, left, right))
 
   if utrs:
     lastx = result.x[^1] + 1
     lastg = result.g[^1] + 1
     let left = max(lastg, rutr[0].uint32)
-    let right = max(left, rutr[1].uint32 + extend)
+    let right = max(left, rutr[1].uint32) # already added extend to rutr
     let size = right - left
     if size > 0:
       result.g.add(toSeq(left..<right))
       result.x.add(toSeq((lastx..<(lastx + size))))
 
-    for sample, dp in dps.mpairs:
-      result.depths[sample].add(dp.values(chrom, left, right))
+      for sample, dp in dps.mpairs:
+        result.depths[sample].add(dp.values(chrom, left, right))
 
   doAssert result.x.len == result.g.len
 

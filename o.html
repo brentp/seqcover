@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="author" content="Brent Pedersen" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+    <style>
+    html,body { height: 100%; margin: 0px; padding: 0px; }
+    .form-control.selectize-control {
+        padding: 5px 6px 0px;
+        height: unset !important;
+    }
+    .remove-single {
+        color: gray !important;
+        top: -1px !important;
+        font-size: 20px !important;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+                <div class="col h-100">
+                    <div id="gene_plot" style="height: 90%"></div>
+                </div>
+            </div>
+    </div>
+</body>
+
+<script src="o.js"></script>
+<script>
+var nan = NaN; // hack to support json dumped with NaN values.
+
+var geneA = plot_data[0];
+var gene_plot_layout = {
+    autosize: true,
+    margin: {t: 30, pad: 0},
+    xaxis: {
+        title: geneA.symbol
+    },
+    yaxis: {
+        title: "depths"
+    },
+    hovermode: 'closest',
+    showlegend: true,
+    legend: {
+        xanchor: "right",
+        yanchor: "top",
+        y: 1,
+        x: 1,
+        orientation: "h",
+        borderwidth: 1,
+        bordercolor: '#eeeeee'
+    },
+
+}
+
+// need to do all genes, but start with 1.
+// add a drop-down with values of plot_data[i].symbol to view different
+// genes
+var traces = [];
+
+for(sample in geneA.plot_coords.depths) {
+    var dp = geneA.plot_coords.depths[sample]
+    dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+
+    var trace = {x: geneA.plot_coords.x, text: geneA.plot_coords.g, y: dp, 
+        type: 'scatter', mode:'lines', name: sample, line: {width: 1},
+        hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}',
+        hoverinfo:"text"
+    };
+    traces.push(trace);
+}
+Plotly.newPlot("gene_plot", traces, gene_plot_layout);
+
+</script>
+
+</body>
+</html>
