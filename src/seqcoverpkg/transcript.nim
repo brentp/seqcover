@@ -92,6 +92,28 @@ proc union*(trs:seq[Transcript]): Transcript =
   if result.position.len == 0 or result.position[^1] != A:
     result.position.add(A)
 
+proc find_offset(o_exon:array[2, int], r:Transcript, o:Transcript, u:Transcript, extend:int, max_gap:int): int =
+    result = r.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
+    # increase u_off until we find the u_exon that encompasses this one.
+    var u_i = 1
+    while u_i < o.position.len:
+      let u_exon = u.position[u_i]
+      if u_exon[0] >= o_exon[1]:
+        break
+      #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
+
+      # add the size of previous exon.
+      result += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
+
+      # add size of extent into intron
+      result += min(2 * extend + max_gap, u_exon[0] - u.position[u_i - 1][1])
+      u_i += 1
+
+    u_i -= 1
+
+    # handle o exon starting after start of u-exon
+    if o.position.len > 0:
+      result += o.position[u_i][0] - u.position[u_i][0]
 
 proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
@@ -108,32 +130,31 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc
   # offsets once)?
   for i, o_exon in o.position:
-    var u_off = result.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
-    # increase u_off until we find the u_exon that encompasses this one.
-    var u_i = 1
-    while u_i < o.position.len:
-      let u_exon = u.position[u_i]
-      if u_exon[0] >= o_exon[1]: break
-      #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
-
-      # add the size of previous exon.
-      u_off += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
-
-      # add size of extent into intron
-      u_off += min(2 * extend.int + max_gap.int, u_exon[0] - u.position[u_i - 1][1])
-      u_i += 1
-    u_i -= 1
-
-    # handle o exon starting after start of u-exon
-    if o.position.len > 0:
-      u_off += o.position[u_i][0] - u.position[u_i][0]
+    let u_off = find_offset(o_exon, result, o, u, extend.int, max_gap.int)
 
     result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
 
-  stderr.write_line "pos:", $result.position
+  result.cdsend = result.position[0][0]
+  for i, p in u.position:
+    stderr.write_line &"exon:{p} cdsend:{o.cdsend}"
+    # [exon p]
+    #    cdsend
+    if p[1] >= o.cdsend and p[0] < o.cdsend:
+      stderr.write_line "break"
+      result.cdsend += (o.cdsend - p[0])
+      break
+    # [exon p] ... cdsend
+    elif p[0] <= o.cdsend:
+      result.cdsend += (p[1] - p[0])
+      result.cdsend += min(2 * extend.int + max_gap.int, p[1] - p[0])
+      continue
 
-  result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
-  result.txend = (o.txend - o.cdsend) + result.cdsend
+    else:
+      break
+
+
+  #result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
+  result.txend = (o.txend - o.position[^1][1]) + result.position[^1][1]
 
   stderr.write_line &"u:{u}\no:{o}\nresult:{result}"
 

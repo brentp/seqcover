@@ -99,7 +99,7 @@ when isMainModule:
     var d4s = read_d4s_to_table(@["d4s/HG00096.final.d4", "d4s/HG00097.final.d4", "d4s/HG00099.final.d4"])
     var gpt: seq[GenePlotData]
     for gene in get_genes(@["PIGA"]):
-      var pd = gene.plot_data(d4s, extend=20)
+      var pd = gene.plot_data(d4s, extend=0)
       gpt.add(pd)
 
     echo "plot_data = ", (%(gpt))
