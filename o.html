@@ -27,7 +27,8 @@
     <div class="container-fluid h-100">
         <div class="row h-100">
                 <div class="col h-100">
-                    <div id="gene_plot" style="height: 90%"></div>
+                    <div id="gene_plot" style="height: 60%"></div>
+                    <div id="transcript_plot" style="height: 30%"></div>
                 </div>
             </div>
     </div>
@@ -38,14 +39,19 @@
 var nan = NaN; // hack to support json dumped with NaN values.
 
 var geneA = plot_data[0];
+
+var mid = Math.round(geneA.plot_coords.x.length / 2)
 var gene_plot_layout = {
     autosize: true,
     margin: {t: 30, pad: 0},
     xaxis: {
-        title: geneA.symbol
+        title: geneA.symbol,
+        tickmode: "array",
+        tickvals: [geneA.plot_coords.x[0], geneA.plot_coords.x[mid], geneA.plot_coords.x[geneA.plot_coords.x.length - 10]],
+        ticktext: [geneA.plot_coords.g[0], geneA.plot_coords.g[mid], geneA.plot_coords.g[geneA.plot_coords.x.length - 10]],
     },
     yaxis: {
-        title: "depths"
+        title: "Depth"
     },
     hovermode: 'closest',
     showlegend: true,
@@ -58,7 +64,6 @@ var gene_plot_layout = {
         borderwidth: 1,
         bordercolor: '#eeeeee'
     },
-
 }
 
 // need to do all genes, but start with 1.
@@ -72,12 +77,49 @@ for(sample in geneA.plot_coords.depths) {
 
     var trace = {x: geneA.plot_coords.x, text: geneA.plot_coords.g, y: dp, 
         type: 'scatter', mode:'lines', name: sample, line: {width: 1},
-        hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}',
+        hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
         hoverinfo:"text"
     };
     traces.push(trace);
 }
 Plotly.newPlot("gene_plot", traces, gene_plot_layout);
+
+var transcript_plot_layout = {
+    autosize: true,
+    margin: {t: 30, pad: 0},
+    xaxis: Object.assign({}, gene_plot_layout.xaxis),
+    yaxis: {title:"transcript", range: [-8, 8]},
+    hovermode: 'closest',
+    showlegend: false,
+}
+
+var tr = geneA.unioned_transcript
+
+transcript_plot_layout.yaxis = Object.assign({}, transcript_plot_layout.yaxis)
+transcript_plot_layout.yaxis.showline = false
+transcript_plot_layout.xaxis.showline = false
+transcript_plot_layout.yaxis.showgrid = false
+transcript_plot_layout.yaxis.tickvals = [1]
+transcript_plot_layout.yaxis.ticktext = [tr.transcript]
+
+let transcript_color = 'rgb(100, 100, 100)';
+let cds_color = 'rgb(100, 100, 255)';
+let exon_color = 'rgb(200, 100, 255)';
+var shapes = []
+var yoff = 1
+
+shapes.push({type: 'rect', x0: tr.txstart, x1: tr.txstop, y0: yoff-0.1, y1: yoff+0.1, line: {color: transcript_color} })
+shapes.push({type: 'rect', x0: tr.cdsstart, x1: tr.cdsstop, y0: yoff-1, y1: yoff+1, line: {color: cds_color} })
+
+tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: yoff-2, y1:yoff+2 ,
+                                      fillcolor: exon_color, line: {color:exon_color}}))
+
+transcript_plot_layout.shapes = shapes
+
+console.log(shapes)
+
+Plotly.newPlot('transcript_plot', [], transcript_plot_layout);
+
 
 </script>
 
