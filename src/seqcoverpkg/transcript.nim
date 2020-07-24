@@ -24,6 +24,10 @@ proc `%`*(a:array[2, int]): JsonNode =
   result.add(newJint(a[1]))
 
 
+proc `$`*(t:Transcript): string =
+  result = &"Transcript{system.`$`(t)}"
+
+
 proc UTR5*(t:Transcript): array[2, int] =
   if t.strand >= 0:
     return [t.txstart, t.cdsstart]
@@ -44,6 +48,9 @@ type Gene* = object
   symbol*: string
   description*: string
   transcripts*: seq[Transcript]
+
+proc `$`*(g:Gene): string =
+  result = &"Gene{system.`$`(g)}"
 
 type plot_coords* = object
   x*: seq[uint32]
@@ -211,8 +218,9 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
     let left = max(lastg, p[0].uint32 - (if i == 0: 0'u32 else: min(p[0].uint32, extend)))
     let right = min(rutr[1].uint32, max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend)))
 
-    let size = right - left
-    if size <= 0: continue
+    let isize = right.int - left.int
+    if isize <= 0: continue
+    let size = isize.uint32
 
     # insert value for missing data to interrupt plot
     if i > 0:
@@ -254,9 +262,3 @@ proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=tr
 
   result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
   result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend)
-
-proc `$`*(t:Transcript): string =
-  result = &"Transcript{system.`$`(t)}"
-
-proc `$`*(g:Gene): string =
-  result = &"Gene{system.`$`(g)}"
