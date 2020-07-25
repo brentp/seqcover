@@ -9,7 +9,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/protovis/3.3.1/protovis.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/7.1.0/math.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.20/r-2.2.3/sc-2.0.1/sl-1.3.1/datatables.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
     <style>
+
+    .big_div {
+          height: 80vh;
+        }
+    
     html,body { height: 100%; margin: 0px; padding: 0px; }
     .form-control.selectize-control {
         padding: 5px 6px 0px;
@@ -23,103 +33,601 @@
     </style>
 </head>
 <body>
-
-    <div class="container-fluid h-100">
-        <div class="row h-100">
-                <div class="col h-100">
-                    <div id="gene_plot" style="height: 60%"></div>
-                    <div id="transcript_plot" style="height: 30%"></div>
-                </div>
+    <h1> SEQCOVER </h1>
+        <div class="container-fluid p-3">
+        <div class="row pt-3 pl-3">
+            <div class="form-group", id="regionfilter">
+                <label for="regionfilter">Gene/Region Selection</label>
             </div>
+        </div>
+    <hr>
+    <div class="container-fluid p-1">
+        <div class="row pt-3">
+            <div class="col-6">
+                <h4 id="region_header">REGION: </h4>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class=big_div id="gene_plot"></div>
+            </div>
+        </div>
+        <div class="row ">
+            <div class="col-2"></div>
+            <div class="col-8">
+                <table id="stats_table"></table>
+            </div>
+            <div class="col-2"></div>
+        </div>
+        <div class="row pt-5">
+            <div class="col-6" id="kde_plot">
+            </div>
+            <div class="col-6" id="proportion_plot">
+            </div>
+        </div>
     </div>
 </body>
 
 <script src="o.js"></script>
+
 <script>
-var nan = NaN; // hack to support json dumped with NaN values.
 
-var geneA = plot_data[0];
+    var nan = NaN; // hack to support json dumped with NaN values.
 
-var mid = Math.round(geneA.plot_coords.x.length / 2)
-var gene_plot_layout = {
-    autosize: true,
-    margin: {t: 30, pad: 0},
-    xaxis: {
-        title: geneA.symbol,
-        tickmode: "array",
-        tickvals: [geneA.plot_coords.x[0], geneA.plot_coords.x[mid], geneA.plot_coords.x[geneA.plot_coords.x.length - 10]],
-        ticktext: [geneA.plot_coords.g[0], geneA.plot_coords.g[mid], geneA.plot_coords.g[geneA.plot_coords.x.length - 10]],
-    },
-    yaxis: {
-        title: "Depth"
-    },
-    hovermode: 'closest',
-    showlegend: true,
-    legend: {
-        xanchor: "right",
-        yanchor: "top",
-        y: 1,
-        x: 1,
-        orientation: "h",
-        borderwidth: 1,
-        bordercolor: '#eeeeee'
-    },
-}
+    /*
+    ------------------------------------------------------------------------------------------------------------------
+                                                        SETUP 
+    ------------------------------------------------------------------------------------------------------------------
+    */
 
-// need to do all genes, but start with 1.
-// add a drop-down with values of plot_data[i].symbol to view different
-// genes
-var traces = [];
+    //Get gene/region names and add them to the available regions form 
+    var region_index_map = {};
+    var select = $('<select class="form-control" id="regionselect"></select>');
+    var index_map = {};
+    for (index in plot_data) {
 
-for(sample in geneA.plot_coords.depths) {
-    var dp = geneA.plot_coords.depths[sample]
-    dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+        //Get region gene info
+        var symbol = plot_data[index].symbol;
+        var chrom = plot_data[index].unioned_transcript.chr;
+        var genomic_positions = plot_data[index].plot_coords.g;
+        var start = Math.min.apply(null,genomic_positions.filter(Boolean));
+        var end = Math.max(...genomic_positions);
 
-    var trace = {x: geneA.plot_coords.x, text: geneA.plot_coords.g, y: dp, 
-        type: 'scatter', mode:'lines', name: sample, line: {width: 1},
-        hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
-        hoverinfo:"text"
+        //Get region string
+        var region_string = symbol + " "+ chrom + ":" + start + "-" + end
+
+        //Store the index of the region in the plot data object.
+        region_index_map[region_string] = index 
+        
+        //Add region to select options
+        var option = $("<option>" + region_string + "</option>");
+        select.append(option)
+    }
+
+    //Add new select options to regionfilter div
+    $("#regionfilter").append(select);
+
+
+    /*
+    ------------------------------------------------------------------------------------------------------------------
+                                                      Plot Functions 
+    ------------------------------------------------------------------------------------------------------------------
+    */
+
+    //by base depth plot layout
+    function get_gene_plot_layout(gene) {
+
+        var mid = Math.round(gene.plot_coords.x.length / 2)
+
+        var layout = {
+            grid: {
+                rows: 3,
+                columns: 1,
+            },
+            autosize: true,
+            margin: {t: 30, pad: 0, l: 150},
+            xaxis: {
+                tickmode: "array",
+                tickvals: [gene.plot_coords.x[0], gene.plot_coords.x[mid], gene.plot_coords.x[gene.plot_coords.x.length - 10]],
+                ticktext: [gene.plot_coords.g[0], gene.plot_coords.g[mid], gene.plot_coords.g[gene.plot_coords.x.length - 10]],
+                title: "Chromosome " + String(gene.unioned_transcript.chr).replace("chr","")
+            },
+            yaxis: {
+                title: "Depth",
+                domain: [0.55,0.90]
+            },
+            yaxis2: {
+                title: "Merged<br>Transcripts",
+                range: [-8,8],
+                showlegend: false,
+                tickvals: [1],
+                showticklabels: false,
+                ticktext: gene.unioned_transcript.transcript,
+                domain: [0.4,0.55],
+
+            },
+            yaxis3: {
+                range: [0,2],
+                showlegend: false,
+                domain: [0.0,0.40]
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                xanchor: "right",
+                yanchor: "top",
+                y: 1,
+                x: 1,
+                orientation: "h",
+                borderwidth: 1,
+                bordercolor: '#eeeeee'
+            },
+        };
+
+        return(layout)
+
     };
-    traces.push(trace);
-}
-Plotly.newPlot("gene_plot", traces, gene_plot_layout);
 
-var transcript_plot_layout = {
-    autosize: true,
-    margin: {t: 30, pad: 0},
-    xaxis: Object.assign({}, gene_plot_layout.xaxis),
-    yaxis: {title:"transcript", range: [-8, 8]},
-    hovermode: 'closest',
-    showlegend: false,
-}
 
-var tr = geneA.unioned_transcript
+    //Get a by position trace per sample of depth 
+    function get_by_position_depth_trace(gene) {
 
-transcript_plot_layout.yaxis = Object.assign({}, transcript_plot_layout.yaxis)
-transcript_plot_layout.yaxis.showline = false
-transcript_plot_layout.xaxis.showline = false
-transcript_plot_layout.yaxis.showgrid = false
-transcript_plot_layout.yaxis.tickvals = [1]
-transcript_plot_layout.yaxis.ticktext = [tr.transcript]
+        var traces = [];
 
-let transcript_color = 'rgb(100, 100, 100)';
-let cds_color = 'rgb(100, 100, 255)';
-let exon_color = 'rgb(200, 100, 255)';
-var shapes = []
-var yoff = 1
+        console.log(gene.plot_coords.depths)
 
-shapes.push({type: 'rect', x0: tr.txstart, x1: tr.txstop, y0: yoff-0.1, y1: yoff+0.1, line: {color: transcript_color} })
-shapes.push({type: 'rect', x0: tr.cdsstart, x1: tr.cdsstop, y0: yoff-1, y1: yoff+1, line: {color: cds_color} })
+        for (sample in gene.plot_coords.depths) {
+            var dp = gene.plot_coords.depths[sample]
+            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
 
-tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: yoff-2, y1:yoff+2 ,
-                                      fillcolor: exon_color, line: {color:exon_color}}))
+            var trace = {x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp, 
+                type: 'scatter', mode:'lines', name: sample, line: {width: 1},
+                hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
+                hoverinfo:"text",
+                yaxis: "y",
+            };
 
-transcript_plot_layout.shapes = shapes
+            traces.push(trace);
+        };
 
-console.log(shapes)
+        return(traces)
 
-Plotly.newPlot('transcript_plot', [], transcript_plot_layout);
+    };
 
+
+    //Get the unioned transcript shapes
+    function get_unioned_transcript_shapes(gene) {
+
+        let transcript_color = 'rgb(100, 100, 100)';
+        let cds_color = 'rgb(100, 100, 255)';
+        let exon_color = 'rgb(200, 100, 255)';
+        var yoff = 1;
+        var shapes = [];
+        var tr = gene.unioned_transcript;
+
+        shapes.push({type: 'rect', x0: tr.txstart, x1: tr.txstop, y0: yoff-0.1, y1: yoff+0.1, line: {color: transcript_color}, yref: "y2" })
+        shapes.push({type: 'rect', x0: tr.cdsstart, x1: tr.cdsstop, y0: yoff-1, y1: yoff+1, line: {color: cds_color},  yref: "y2"})
+
+        tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: yoff-2, y1:yoff+2 ,
+                                              fillcolor: exon_color, line: {color:exon_color}, yref: "y2"}))
+
+        return(shapes)
+
+    };
+
+    
+    //Get the transcript shapes for the current region
+    function get_transcript_shapes(gene) {
+
+        let top = 10;
+        let bottom = 8;
+        let offset = 0.25;
+        let shapes = [];
+        let tick_labels = [];
+        let tick_vals = [];
+        let strandArray = [];
+
+        for (transcript of gene.transcripts) {
+                
+            // Transcript 
+            shapes.push({type: "line", x0: transcript.txstart, x1: transcript.txend, 
+                         y0: bottom + 1, y1: bottom + 1, line_color: "black",yref: "y3"}) 
+
+            //Strand info
+            let strand_interval = Math.round((transcript.txend - transcript.txstart) / 20)
+            let strand_marker = transcript.strand > 0 ? ">" : "<";
+            for (i = transcript.txstart; i < transcript.txend; i++) {
+                if (i % strand_interval == 0) {
+
+                    strandArray.push({x: i, y: bottom + 1.001, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y3"})
+
+                };
+            };
+
+            //Exons
+            transcript.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], 
+                                                         y0: bottom + (1 - offset), y1: bottom + (1 + offset), 
+                                                         line_color: "black", fillcolor: "black", yref: "y3"})) 
+                
+            //Get tick labels
+            //tick_labels.push(transcript.transcript_id)
+            tick_labels.push("Need A transcript label")
+            tick_vals.push(bottom + 1)
+
+            //update bottom 
+            bottom = bottom - 1 
+        };
+
+        return({"shapes": shapes, "top": top, "bottom": bottom, "tick_labels": tick_labels, "tick_vals": tick_vals, "strand_annotation": strandArray})
+
+    };
+
+
+    //Calculate the kernal density estimator values for an array of depths
+    function get_kde_values(kernel, thresholds, data) {
+      var results = {x:[],y:[]}
+      thresholds.map(function(t) {
+        results["x"].push(t);
+        results["y"].push(d3.mean(data, d => kernel(t - d)));
+      });
+      return(results)
+    };
+
+
+    //Kernal Density Estimator epanechnikov calculation
+    function epanechnikov(bandwidth) {
+      return x => Math.abs(x /= bandwidth) <= 1 ? 0.75 * (1 - x * x) / bandwidth : 0;
+    };
+
+
+    function get_stats_table(gene, low_depth = 10) {
+
+        var dataRows = []
+        var columnNames = [{"title": "Sample"},
+                           {"title": "Mean Depth"},
+                           {"title": "Median Depth"},
+                           {"title": "STD"},
+                           {"title": "Min Depth"},
+                           {"title": "Max Depth"},
+                           {"title": "Low Coverage Sites<br>( <=" + low_depth + " )"}]
+    
+        for (sample in gene.plot_coords.depths) {
+
+            // Depths 
+            let dp = gene.plot_coords.depths[sample]
+
+            //Convert null values to NaN 
+            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+            
+            //Remove NaNs
+            dp = dp.filter(value => !Number.isNaN(value));
+
+            //Get depth descriptive statistics
+            let dp_min = Math.min(...dp)
+            let dp_max = Math.max(...dp)
+            let dp_mean = math.round(math.mean(dp),3)
+            let dp_median = math.median(dp)
+            let dp_std = math.round(math.std(dp),3)
+            let dp_low = math.sum(dp.map(function(v) { return v <= low_depth ? 1: 0})) 
+
+            dataRows.push([sample, dp_mean, dp_median, dp_std, dp_min, dp_max, dp_low])
+        };
+        return({rowData: dataRows, colNames: columnNames})
+    };
+
+
+    //per sample depth distribution using kernal density estimation     
+    function get_kde_traces(gene) {
+
+        let traces = []
+
+        for (sample in gene.plot_coords.depths) {
+            
+            // Depths 
+            let dp = gene.plot_coords.depths[sample]
+
+            //Convert null values to NaN 
+            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+            
+            //Remove NaNs
+            dp = dp.filter(value => !Number.isNaN(value));
+                
+            //get min and max depths
+            let mindp = Math.min.apply(Math,dp);
+            let maxdp = Math.max.apply(Math,dp);
+
+            //get kde values for the current sample's depths. (epanechnikov set to 7)
+            let kde_values =  get_kde_values(epanechnikov(7),pv.range(mindp,(maxdp+1)), dp)
+
+            //create trace
+            let trace = {x: kde_values.x, y: kde_values.y, mode: "lines", 
+                         name: sample, line: {width: 1}, hovertemplate: "<b>Depth</b>:%{x}"}
+
+            traces.push(trace)
+
+        };
+
+        return(traces)
+    };
+
+
+    //by kde plot layout
+    function get_kde_layout() {
+
+        var layout = {
+            autosize: true,
+            title: "Depth Distribution per Sample",
+            xaxis: {
+                title: "Depth"
+            },
+            yaxis: {
+                title: "KDE value",
+                domain: [0.0,0.9],
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                xanchor: "right",
+                yanchor: "top",
+                y: 1,
+                x: 1,
+                orientation: "h",
+                borderwidth: 1,
+                bordercolor: '#eeeeee'
+            },
+        };
+        return(layout)
+    };
+
+
+    //per Sample depth proportion traces
+    function get_proportion_trace(gene) {
+
+        let traces = []
+
+        for (sample in gene.plot_coords.depths) {
+
+            // Depths 
+            let dp = gene.plot_coords.depths[sample]
+
+            //Convert null values to NaN 
+            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+            
+            //Remove NaNs
+            dp = dp.filter(value => !Number.isNaN(value));
+
+            let depth_map = {}
+            let depth_values = new Set()
+            let dp_count = 0 
+            //get the number of 
+            for (depth of dp) {
+                
+                dp_count += 1
+                
+                depth_values.add(depth)
+
+                if (!(depth in depth_map)) {
+                    depth_map[depth] = 1
+
+                } else {
+                    depth_map[depth] += 1
+                };
+            };
+
+            let x_values = []
+            let y_values = []
+            let counter = 0
+            //Calculate proportion scores
+            for (key of [...depth_values].sort(function(a,b) {return b-a})) {
+
+                //increment counter
+                counter += depth_map[key]
+
+                //Add x and y valuess
+                x_values.push(key)
+                y_values.push(counter / dp_count)
+
+            };
+
+            let trace = {x: x_values, y: y_values,  mode: "lines", 
+                         name: sample, line: {width: 1}, 
+                         hovertemplate: "<b>Depth</b>:%{x}<br><b>Proportion</b>:%{y}"}
+
+            traces.push(trace)
+        };
+        
+        return(traces)
+    };
+
+
+    //by proprotion plot layout
+    function get_proportion_layout() {
+
+        var layout = {
+            autosize: true,
+            title: "Depth Proportion per Sample",
+            xaxis: {
+                title: "Depth"
+            },
+            yaxis: {
+                title: "Proportion",
+                domain: [0.0,0.9],
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                xanchor: "right",
+                yanchor: "top",
+                y: 1,
+                x: 1,
+                orientation: "h",
+                borderwidth: 1,
+                bordercolor: '#eeeeee'
+            },
+        };
+        return(layout)
+    };
+    
+
+    /*
+    ------------------------------------------------------------------------------------------------------------------
+                                                     Plot Controllers 
+    ------------------------------------------------------------------------------------------------------------------
+    */
+
+    //Per base depth plot with transcript annotations
+    function plot_per_base_depth(gene) {
+
+        //Get gene specific layout
+        plot_gene_layout = get_gene_plot_layout(gene)
+
+        //Get gene specific depth traces
+        by_position_depth_traces = get_by_position_depth_trace(gene)
+
+        //Add empty subplots 
+        by_position_depth_traces.push({yaxis: "y2"})
+        by_position_depth_traces.push({yaxis: "y3"})
+
+        // get unionized transcript shapes
+        unioned_transcript_shapes = get_unioned_transcript_shapes(gene)
+        
+        // Get per transcript annotation shapes
+        transcript_map = get_transcript_shapes(gene)
+
+        //Add shapes to layout 
+        plot_gene_layout.shapes = unioned_transcript_shapes.concat(transcript_map.shapes)
+
+        //Adjuste subplot 3 yaxis ranges based on the number of annotated  transcripts 
+        plot_gene_layout.yaxis3.range = [transcript_map.bottom, transcript_map.top]
+
+        //Add subplot 3 yaxis tick labels (transcript ids)
+        plot_gene_layout.yaxis3.tickvals = transcript_map.tick_vals
+        plot_gene_layout.yaxis3.ticktext = transcript_map.tick_labels
+
+        //Add subplot 3 strand annotations 
+        plot_gene_layout.annotations = transcript_map.strand_annotation
+
+        //Plot by base depth 
+        Plotly.newPlot("gene_plot", by_position_depth_traces, plot_gene_layout)
+
+    };
+
+
+    //Add a jQuery data table with descriptive stats
+    function plot_stats_table(gene) {
+
+        //Remove previous data table if it exists
+        if ($.fn.DataTable.isDataTable('#stats_table')) {
+            let table = $('#stats_table').DataTable()
+            table.destroy();
+        };
+
+        //Get row data and column names
+        rows_and_columns = get_stats_table(gene)
+
+        //Create data table
+        jQuery("#stats_table").DataTable({
+            destory: true,
+            data: rows_and_columns["rowData"],
+            columns: rows_and_columns["colNames"],
+            paging: true,
+            scroller: true,
+            scrollY: '60vh',
+            scrollX: true,
+            scrollCollapse: true,
+            select: {style: "os"},
+        });
+
+    };
+
+
+    //Depth Distribution plot using kde 
+    function plot_kde_distribution(gene) {
+
+        //Get kde plot trace per sample 
+        var kde_traces = get_kde_traces(gene)
+
+        //Get the plot layout for the kde plot
+        var kde_layout = get_kde_layout()
+
+        Plotly.newPlot("kde_plot", kde_traces, kde_layout)
+
+    };
+
+
+    //Depth proportion plot 
+    function plot_proportion_depth(gene) {
+
+        //Get kde plot trace per sample 
+        var kde_traces = get_kde_traces(gene)
+        var proportion_trace = get_proportion_trace(gene)
+
+        //Get the plot layout for the kde plot
+        var proportion_layout = get_proportion_layout()
+
+        Plotly.newPlot("proportion_plot", proportion_trace, proportion_layout)
+
+    };
+
+        
+
+    /*
+    ------------------------------------------------------------------------------------------------------------------
+                                                     Event Handling 
+    ------------------------------------------------------------------------------------------------------------------
+    */
+
+    //Controller function for generating gene/region sepecific plots
+    function generate_plots(selected_region) {
+
+        //Update region specific header  
+        var header = document.getElementById("region_header")
+        header.innerHTML = selected_region
+        
+        //Index of plot in plot_data and gene data
+        var plotIndex = region_index_map[selected_region];
+        var selectedGene = plot_data[plotIndex];
+
+        //Plot per base depths 
+        plot_per_base_depth(selectedGene)
+
+        //Plot kde distrubtion 
+        plot_kde_distribution(selectedGene)
+        
+        //Plot proprotion of depth per sample
+        plot_proportion_depth(selectedGene)
+
+        //Add a descriptive statistics table
+        plot_stats_table(selectedGene)
+
+
+
+    };
+
+
+    //Load first region
+    jQuery(document).ready(function(){
+
+        //Plot first gene
+        for (region in region_index_map){
+            if (region_index_map[region] == 0) {
+                generate_plots(region)
+                break
+            };
+        };
+
+
+    });
+
+
+    //Select gene/region change
+    $("#regionselect").on('change', function(e) {
+        var selectedValue = this.value
+
+        //Plot the selected region
+        generate_plots(selectedValue)
+
+    });
 
 </script>
 
