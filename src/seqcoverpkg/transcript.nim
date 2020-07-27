@@ -99,28 +99,29 @@ proc union*(trs:seq[Transcript]): Transcript =
   if result.position.len == 0 or result.position[^1] != A:
     result.position.add(A)
 
-proc find_offset(o_exon:array[2, int], r:Transcript, o:Transcript, u:Transcript, extend:int, max_gap:int): int =
-    result = r.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
-    # increase u_off until we find the u_exon that encompasses this one.
-    var u_i = 1
-    while u_i < o.position.len and u_i < u.position.len:
-      let u_exon = u.position[u_i]
-      if u_exon[0] >= o_exon[1]:
-        break
-      #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
+proc find_offset*(o_exon:array[2, int], r:Transcript, o:Transcript, u:Transcript, extend:int, max_gap:int): int =
+  result = r.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
+  stderr.write_line "result A:", result
+  # increase u_off until we find the u_exon that encompasses this one.
+  var u_i = 1
+  while u_i < o.position.len and u_i < u.position.len:
+    let u_exon = u.position[u_i]
+    if u_exon[0] >= o_exon[1]:
+      break
+    #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
 
-      # add the size of previous exon.
-      result += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
+    # add the size of previous exon.
+    result += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
 
-      # add size of extent into intron
-      result += min(2 * extend + max_gap, u_exon[0] - u.position[u_i - 1][1])
-      u_i += 1
+    # add size of extent into intron
+    result += min(2 * extend + max_gap, u_exon[0] - u.position[u_i - 1][1])
+    u_i += 1
 
-    u_i -= 1
+  u_i -= 1
 
-    # handle o exon starting after start of u-exon
-    if o.position.len > 0:
-      result += o.position[u_i][0] - u.position[u_i][0]
+  # handle o exon starting after start of u-exon
+  if o.position.len > 0:
+    result += o.position[u_i][0] - u.position[u_i][0]
 
 proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
