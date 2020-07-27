@@ -260,23 +260,6 @@
     };
 
 
-    //Calculate the kernal density estimator values for an array of depths
-    function get_kde_values(kernel, thresholds, data) {
-      var results = {x:[],y:[]}
-      thresholds.map(function(t) {
-        results["x"].push(t);
-        results["y"].push(d3.mean(data, d => kernel(t - d)));
-      });
-      return(results)
-    };
-
-
-    //Kernal Density Estimator epanechnikov calculation
-    function epanechnikov(bandwidth) {
-      return x => Math.abs(x /= bandwidth) <= 1 ? 0.75 * (1 - x * x) / bandwidth : 0;
-    };
-
-
     function get_stats_table(gene, low_depth = 10) {
 
         var dataRows = []
@@ -368,7 +351,6 @@
     };
 
 
-    //by kde plot layout
     function get_depth_distribution_layout() {
 
         var layout = {
@@ -396,69 +378,6 @@
         return(layout)
     };
 
-
-    //per sample depth distribution using kernal density estimation     
-    function get_kde_traces(gene) {
-
-        let traces = []
-
-        for (sample in gene.plot_coords.depths) {
-            
-            // Depths 
-            let dp = gene.plot_coords.depths[sample]
-
-            //Convert null values to NaN 
-            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
-            
-            //Remove NaNs
-            dp = dp.filter(value => !Number.isNaN(value));
-                
-            //get min and max depths
-            let mindp = Math.min.apply(Math,dp);
-            let maxdp = Math.max.apply(Math,dp);
-
-            //get kde values for the current sample's depths. (epanechnikov set to 7)
-            let kde_values =  get_kde_values(epanechnikov(7),pv.range(mindp,(maxdp+1)), dp)
-
-            //create trace
-            let trace = {x: kde_values.x, y: kde_values.y, mode: "lines", 
-                         name: sample, line: {width: 1}, hovertemplate: "<b>Depth</b>:%{x}"}
-
-            traces.push(trace)
-
-        };
-
-        return(traces)
-    };
-
-
-    //by kde plot layout
-    function get_kde_layout() {
-
-        var layout = {
-            autosize: true,
-            title: "Depth Distribution per Sample",
-            xaxis: {
-                title: "Depth"
-            },
-            yaxis: {
-                title: "KDE value",
-                domain: [0.0,0.9],
-            },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                xanchor: "right",
-                yanchor: "top",
-                y: 1,
-                x: 1,
-                orientation: "h",
-                borderwidth: 1,
-                bordercolor: '#eeeeee'
-            },
-        };
-        return(layout)
-    };
 
 
     //per Sample depth proportion traces
@@ -628,7 +547,7 @@
         //Get depth distribution plot trace per sample 
         var depth_traces = get_depth_distribution_traces(gene)
 
-        //Get the plot layout for the kde plot
+        //Get the plot layout for the depth plot
         var depth_dist_layout = get_depth_distribution_layout()
 
         Plotly.newPlot("depth_dist_plot", depth_traces, depth_dist_layout)
@@ -637,35 +556,7 @@
 
 
 
-    //Depth Distribution plot using kde 
-    function plot_kde_distribution(gene) {
-
-        //Get kde plot trace per sample 
-        var kde_traces = get_kde_traces(gene)
-
-        //Get the plot layout for the kde plot
-        var kde_layout = get_kde_layout()
-
-        Plotly.newPlot("depth_dist_plot", kde_traces, kde_layout)
-
-    };
-
-
     //Depth proportion plot 
-    function plot_proportion_depth(gene) {
-
-        //Get kde plot trace per sample 
-        var proportion_trace = get_proportion_trace(gene)
-
-        //Get the plot layout for the kde plot
-        var proportion_layout = get_proportion_layout()
-
-        Plotly.newPlot("proportion_plot", proportion_trace, proportion_layout)
-
-    };
-
-        
-
     /*
     ------------------------------------------------------------------------------------------------------------------
                                                      Event Handling 
@@ -692,13 +583,6 @@
         //Plot depth distribution distrubtion 
         plot_depth_distribution(selectedGene)
         
-        //Plot proprotion of depth per sample
-        //plot_proportion_depth(selectedGene)
-
-
-
-
-
     };
 
 
