@@ -99,29 +99,37 @@ proc union*(trs:seq[Transcript]): Transcript =
   if result.position.len == 0 or result.position[^1] != A:
     result.position.add(A)
 
-proc find_offset*(o_exon:array[2, int], r:Transcript, o:Transcript, u:Transcript, extend:int, max_gap:int): int =
-  result = r.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
-  stderr.write_line "result A:", result
-  # increase u_off until we find the u_exon that encompasses this one.
-  var u_i = 1
-  while u_i < o.position.len and u_i < u.position.len:
-    let u_exon = u.position[u_i]
-    if u_exon[0] >= o_exon[1]:
+proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
+  doAssert pos >= u.txstart and pos <= u.txend, "error can't translate positoin outside of unioned transcript"
+  if pos < u.cdsstart:
+    result = pos - u.txstart
+    stderr.write_line "CDS with:", pos, " got:", result
+    return
+
+  result = u.position[0][0] - u.txstart
+
+  for i, exon in u.position:
+    if exon[0] > pos: break
+
+    # add previous intron
+    if i > 0:
+      let intron = min(2 * extend + max_gap, exon[0] - u.position[i - 1][1])
+      result += intron
+
+    # add full size of this exon
+    if exon[1] <= pos:
+      let exon_bases = exon[1] - exon[0]
+      result += exon_bases
+    else:
+      # exon contains current position
+      result += (pos - exon[0])
       break
-    #doAssert u_exon[0] <= o_exon[0] and u_exon[1] >= o_exon[1], $(u, o) & $(u_exon, o_exon)
+    #echo "i:", i, " curent:", result
+    #
 
-    # add the size of previous exon.
-    result += (u.position[u_i - 1][1] - u.position[u_i - 1][0])
+  stderr.write_line "with:", pos, " got:", result
 
-    # add size of extent into intron
-    result += min(2 * extend + max_gap, u_exon[0] - u.position[u_i - 1][1])
-    u_i += 1
 
-  u_i -= 1
-
-  # handle o exon starting after start of u-exon
-  if o.position.len > 0:
-    result += o.position[u_i][0] - u.position[u_i][0]
 
 proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
@@ -132,15 +140,16 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): 
   result.strand = o.strand
   result.`chr` = o.`chr`
 
+  doAssert o.txstart >= u.txstart
   result.txstart = (o.txstart - u.txstart) + min(1000, extend.int)
-  result.cdsstart = (o.cdsstart - u.txstart) + min(1000, extend.int)
+  result.cdsstart = result.txstart + u.find_offset(o.cdsstart, extend.int, max_gap.int) # (o.cdsstart - u.txstart) + min(1000, extend.int)
 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc
   # offsets once)?
   for i, o_exon in o.position:
-    let u_off = find_offset(o_exon, result, o, u, extend.int, max_gap.int)
+    let u_off = u.find_offset(o_exon[0], extend.int, max_gap.int)
 
-    result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
+    result.position.add([result.txstart + u_off, result.txstart + u_off + (o_exon[1] - o_exon[0])])
 
   result.cdsend = result.position[0][0]
   for i, p in u.position:
@@ -159,7 +168,6 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): 
 
     else:
       break
-
 
   #result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
   result.txend = (o.txend - o.position[^1][1]) + result.position[^1][1]
