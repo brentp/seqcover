@@ -307,7 +307,6 @@
             var exonNumbers = transcript.strand > 0 ? pv.range(1,exonCount + 1) : pv.range(exonCount, 0, -1) 
 
             //Add exon shapes
-            let offsetIndex = 0
             exon_2d_array = transcript.position.sort(function(a,b) {return a[0] - b[0]})
             for (index in exon_2d_array) {
                 
@@ -317,7 +316,6 @@
                 if (exonPos[0] > transcript.cdsend) {
                     exonCount -= 1
                     exonNumbers = transcript.strand > 0 ? pv.range(1,exonCount + 1) : pv.range(exonCount, 0, -1) 
-                   // offsetIndex -= 1
                     continue
                 }
 
@@ -325,7 +323,6 @@
                 if (exonPos[1] < transcript.cdstart) {
                     exonCount -= 1
                     exonNumbers = transcript.strand > 0 ? pv.range(1,exonCount + 1) : pv.range(exonCount, 0, -1) 
-                    //offsetIndex -= 1
                     continue
                 }
 
@@ -339,7 +336,7 @@
                              y1: bottom + (1 + exonOffset), line_color: "black", fillcolor: "black", yref: "y3"}) 
 
                 //Add exon info to customData
-                customData.push(get_custom_data_list(transcript, exonstart, exonend, exonNumbers[(parseInt(index) + parseInt(offsetIndex))], gene.plot_coords.g)) 
+                customData.push(get_custom_data_list(transcript, exonstart, exonend, exonNumbers[index], gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 // Add exon plot coordinates for hover info
