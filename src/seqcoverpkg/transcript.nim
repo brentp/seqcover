@@ -103,7 +103,7 @@ proc find_offset(o_exon:array[2, int], r:Transcript, o:Transcript, u:Transcript,
     result = r.txstart + (o.position[0][0] - o.txstart) #extend + (o.cdsstart - o.txstart)
     # increase u_off until we find the u_exon that encompasses this one.
     var u_i = 1
-    while u_i < o.position.len:
+    while u_i < o.position.len and u_i < u.position.len:
       let u_exon = u.position[u_i]
       if u_exon[0] >= o_exon[1]:
         break
@@ -261,4 +261,7 @@ proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=tr
   result.unioned_transcript = g.transcripts.union
 
   result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
+  for i, t in result.transcripts:
+    result.transcripts[i] = result.unioned_transcript.translate(t, extend=extend)
   result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend)
+
