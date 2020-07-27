@@ -60,7 +60,7 @@
             <div class="col-2"></div>
         </div>
         <div class="row pt-5">
-            <div class="col-6" id="kde_plot">
+            <div class="col-6" id="depth_dist_plot">
             </div>
             <div class="col-6" id="proportion_plot">
             </div>
@@ -174,8 +174,6 @@
 
         var traces = [];
 
-        console.log(gene.plot_coords.depths)
-
         for (sample in gene.plot_coords.depths) {
             var dp = gene.plot_coords.depths[sample]
             dp = dp.map(function(v) { return v < -1000 ? NaN : v})
@@ -228,7 +226,7 @@
         let strandArray = [];
 
         for (transcript of gene.transcripts) {
-                
+
             // Transcript 
             shapes.push({type: "line", x0: transcript.txstart, x1: transcript.txend, 
                          y0: bottom + 1, y1: bottom + 1, line_color: "black",yref: "y3"}) 
@@ -250,8 +248,7 @@
                                                          line_color: "black", fillcolor: "black", yref: "y3"})) 
                 
             //Get tick labels
-            //tick_labels.push(transcript.transcript_id)
-            tick_labels.push("Need A transcript label")
+            tick_labels.push(transcript.transcript)
             tick_vals.push(bottom + 1)
 
             //update bottom 
@@ -283,13 +280,13 @@
     function get_stats_table(gene, low_depth = 10) {
 
         var dataRows = []
-        var columnNames = [{"title": "Sample"},
-                           {"title": "Mean Depth"},
-                           {"title": "Median Depth"},
-                           {"title": "STD"},
-                           {"title": "Min Depth"},
-                           {"title": "Max Depth"},
-                           {"title": "Low Coverage Sites<br>( <=" + low_depth + " )"}]
+        var columnNames = [{"title": "Sample", width: "20%"},
+                           {"title": "Mean Depth", width: "10%"},
+                           {"title": "Median Depth", width: "10%"},
+                           {"title": "STD", width: "10%"},
+                           {"title": "Min Depth", width: "10%"},
+                           {"title": "Max Depth", width: "10%"},
+                           {"title": "Low Coverage Sites<br>( <=" + low_depth + " )", width: "30%"}]
     
         for (sample in gene.plot_coords.depths) {
 
@@ -313,6 +310,90 @@
             dataRows.push([sample, dp_mean, dp_median, dp_std, dp_min, dp_max, dp_low])
         };
         return({rowData: dataRows, colNames: columnNames})
+    };
+
+    function get_depth_distribution_traces(gene) {
+
+        let traces = []
+
+        for (sample in gene.plot_coords.depths) {
+
+            // Depths 
+            let dp = gene.plot_coords.depths[sample]
+
+            //Convert null values to NaN 
+            dp = dp.map(function(v) { return v < -1000 ? NaN : v})
+            
+            //Remove NaNs
+            dp = dp.filter(value => !Number.isNaN(value));
+
+            let depth_map = {}
+            let depth_values = new Set()
+            let dp_count = 0 
+            //get the number of 
+            for (depth of dp) {
+                
+                dp_count += 1
+                
+                depth_values.add(parseInt(depth))
+
+                if (!(depth in depth_map)) {
+                    depth_map[depth] = 1
+
+                } else {
+                    depth_map[depth] += 1
+                };
+            };
+
+            let x_values = []
+            let y_values = []
+            //Calculate proportion scores
+            for (key of [...depth_values].sort(function (a,b) {return (a - b)})) {
+
+                //Add x and y valuess
+                x_values.push(key)
+                y_values.push(depth_map[key])
+
+            };
+
+            let trace = {x: x_values, y: y_values,  mode: "lines", 
+                         name: sample, line: {width: 1}, 
+                         hovertemplate: "<b>Depth</b>:%{x}<br><b>Count</b>:%{y}"}
+
+            traces.push(trace)
+        };
+        
+        return(traces)
+
+    };
+
+
+    //by kde plot layout
+    function get_depth_distribution_layout() {
+
+        var layout = {
+            autosize: true,
+            title: "Depth Distribution per Sample",
+            xaxis: {
+                title: "Depth"
+            },
+            yaxis: {
+                title: "Count",
+                domain: [0.0,0.9],
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: {
+                xanchor: "right",
+                yanchor: "top",
+                y: 1,
+                x: 1,
+                orientation: "h",
+                borderwidth: 1,
+                bordercolor: '#eeeeee'
+            },
+        };
+        return(layout)
     };
 
 
@@ -541,6 +622,21 @@
     };
 
 
+    //Depth Distribution plot using per depth count 
+    function plot_depth_distribution(gene) {
+
+        //Get depth distribution plot trace per sample 
+        var depth_traces = get_depth_distribution_traces(gene)
+
+        //Get the plot layout for the kde plot
+        var depth_dist_layout = get_depth_distribution_layout()
+
+        Plotly.newPlot("depth_dist_plot", depth_traces, depth_dist_layout)
+
+    };
+
+
+
     //Depth Distribution plot using kde 
     function plot_kde_distribution(gene) {
 
@@ -550,7 +646,7 @@
         //Get the plot layout for the kde plot
         var kde_layout = get_kde_layout()
 
-        Plotly.newPlot("kde_plot", kde_traces, kde_layout)
+        Plotly.newPlot("depth_dist_plot", kde_traces, kde_layout)
 
     };
 
@@ -559,7 +655,6 @@
     function plot_proportion_depth(gene) {
 
         //Get kde plot trace per sample 
-        var kde_traces = get_kde_traces(gene)
         var proportion_trace = get_proportion_trace(gene)
 
         //Get the plot layout for the kde plot
@@ -591,14 +686,16 @@
         //Plot per base depths 
         plot_per_base_depth(selectedGene)
 
-        //Plot kde distrubtion 
-        plot_kde_distribution(selectedGene)
-        
-        //Plot proprotion of depth per sample
-        plot_proportion_depth(selectedGene)
-
         //Add a descriptive statistics table
         plot_stats_table(selectedGene)
+
+        //Plot depth distribution distrubtion 
+        plot_depth_distribution(selectedGene)
+        
+        //Plot proprotion of depth per sample
+        //plot_proportion_depth(selectedGene)
+
+
 
 
 
