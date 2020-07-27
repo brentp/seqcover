@@ -357,7 +357,7 @@
         //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
         let trace = {x: x_values, y: y_values, text: text_symbol, 
                 type: 'scatter', mode:'markers', customdata: customData, name: "transcripts",
-                opacity: 0.0,showlegend: false, yaxis: "y3", marker: { color: "darkcyan", size: 20}, 
+                opacity: 0.0,showlegend: false, yaxis: "y3", marker: { color: "darkcyan", size: 15}, 
                 hovertemplate: '<b>Gene</b>: %{text}<br><b>Transcript ID</b>: %{customdata[0]}<br><b>Strand</b>: %{customdata[1]}<br><b>TX Start</b>: %{customdata[2]}<br><b>TX End</b>: %{customdata[3]}<br><b>CDS Start</b>: %{customdata[4]}<br><b>CDS End</b>: %{customdata[5]}<br><b>Exon Start</b>: %{customdata[6]}<br><b>Exon End</b>: %{customdata[7]}<br><b>Exon Number</b>: %{customdata[8]}<br>',
             };
 
