@@ -99,10 +99,11 @@ when isMainModule:
     var d4s = read_d4s_to_table(@["d4s/HG00096.final.d4", "d4s/HG00097.final.d4", "d4s/HG00099.final.d4"])
     var gpt: seq[GenePlotData]
     for gene in get_genes(@["PIGA", "KCNQ2", "MUC5B", "ARX", "DNM1", "SLC25A22", "CDLK5", "GABRA1", "ITPA", "GABRB1"]):
+
       stderr.write_line ">>> u:", gene.transcripts.union
       for t in gene.transcripts:
+        if t.transcript notin ["NM_172108", "NM_172109"]: continue
         stderr.write_line ">>> t:", $t
-        break
       stderr.write_line "######################"
 
       #var t = gene.transcripts[1]

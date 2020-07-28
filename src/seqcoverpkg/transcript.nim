@@ -104,10 +104,10 @@ proc union*(trs:seq[Transcript]): Transcript =
 
 proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
   doAssert pos >= u.txstart and pos <= u.txend, &"error can't translate position {pos} outside of unioned transcript ({u.txstart}, {u.txend})"
-  if pos < u.cdsstart:
-    result = pos - u.txstart
-    #stderr.write_line "CDS with:", pos, " got:", result
-    return
+  #if pos < u.cdsstart:
+  #  result = pos - u.txstart
+  #  #stderr.write_line "CDS with:", pos, " got:", result
+  #  return
 
   result = u.position[0][0] - u.txstart
 
@@ -143,24 +143,22 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): 
   result.strand = o.strand
   result.`chr` = o.`chr`
 
+  # needs some padding on left to go upstream, and use same param as for
+  # introns, but here we limit to 1000 bases.
+  let left = min(1000, extend.int)
+
   doAssert o.txstart >= u.txstart, $o
-  result.txstart = (o.txstart - u.txstart) + min(1000, extend.int)
-  result.cdsstart = result.txstart + u.find_offset(o.cdsstart, extend.int, max_gap.int) # (o.cdsstart - u.txstart) + min(1000, extend.int)
+  result.txstart = u.find_offset(o.txstart, extend.int, max_gap.int) + left
+  result.cdsstart = u.find_offset(o.cdsstart, extend.int, max_gap.int) + left
 
-  # todo: this in n^2 (but n is small. iterate over uexons first and calc
-  # offsets once)?
+  # todo: this in n^2 (but n is small. iterate over uexons first and calc offsets once)?
   for i, o_exon in o.position:
-    let u_off = u.find_offset(o_exon[0], extend.int, max_gap.int)
+    let u_off = left + u.find_offset(o_exon[0], extend.int, max_gap.int)
 
-    result.position.add([result.txstart + u_off, result.txstart + u_off + (o_exon[1] - o_exon[0])])
+    result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
 
-  result.cdsend = result.txstart + u.find_offset(o.cdsend, extend.int, max_gap.int)
-  #result.txend = result.txstart + find_offset(o.txend, extend, max_gap)
-
-  #result.cdsend = result.position[^1][1] + (o.cdsend - o.position[^1][1])
-  result.txend = (o.txend - o.position[^1][1]) + result.position[^1][1]
-
-  stderr.write_line &"u:{u}\no:{o}\nresult:{result}"
+  result.cdsend = left + u.find_offset(o.cdsend, extend.int, max_gap.int)
+  result.txend = left + u.find_offset(o.txend, extend.int, max_gap.int) 
 
 
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
@@ -254,16 +252,12 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
 proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
-  result.transcripts = g.transcripts
   result.unioned_transcript = g.transcripts.union
-  stderr.write_line "gene:", g.symbol
 
   result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
-  var tmp: seq[Transcript]
-  for i, t in result.transcripts:
+  for t in g.transcripts:
     if t.`chr` != result.unioned_transcript.`chr`: continue
-    tmp.add(result.unioned_transcript.translate(t, extend=extend))
-  result.transcripts = tmp
+    result.transcripts.add(result.unioned_transcript.translate(t, extend=extend))
 
   result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend)
 
