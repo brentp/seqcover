@@ -199,19 +199,31 @@
         let middle = 1
         let exonOffset = 0.25
         let cdsOffset = 0.5
+        let textOffset = 0.7
         var shapes = [];
         var tr = gene.unioned_transcript;
         let strandArray = [];
 
         //Add CDS Region
         shapes.push({type: "rect", x0: tr.cdsstart, x1: tr.cdsend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "deepskyblue", line: {color: "deepskyblue"}, yref: "y2"})
+
+        //Add region type text
+        strandArray.push({x: (tr.cdsstart + ((tr.cdsend - tr.cdsstart) / 2)), y: middle + textOffset, text: "Coding Region", font: {color :"deepskyblue", font: 20}, showarrow: false, yref: "y2"})
+
         //Add Left Non CDS Region 
         if (tr.cdsstart < tr.txend) {
             shapes.push({type: "rect", x0: tr.txstart, x1: tr.cdsstart, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "darkviolet", line: {color: "darkviolet"}, yref: "y2"})
+            
+            //Add region type text
+            strandArray.push({x: (tr.txstart + (tr.cdsstart - tr.txstart) / 2), y: middle + textOffset, text: "Non-Coding Region", font: {color :"darkviolet", font: 20}, showarrow: false, yref: "y2"})
         }
         if (tr.cdsend < tr.txend) {
             shapes.push({type: "rect", x0: tr.cdsend, x1: tr.txend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "darkviolet", line: {color: "darkviolet"}, yref: "y2"})
+
+            //Add region type text
+            strandArray.push({x: (tr.cdsend + (tr.txend - tr.cdsend) / 2 ) , y: middle + textOffset, text: "Non-Coding Region", font: {color :"darkviolet", font: 20}, showarrow: false, yref: "y2"})
         }
+
         //ADD transcript 
         shapes.push({type: "line", x0: tr.txstart, x1: tr.txend, y0: middle, y1: middle, line_color: "black",yref: "y2"}) 
         //ADD exons
