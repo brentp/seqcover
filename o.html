@@ -289,16 +289,66 @@
                         y0: bottom + (1 - utrOffset), y1: bottom + (1 + utrOffset),
                         line_color: "cyan", fillcolor: "cyan", yref: "y3"}
 
-            //Add UTR info to customData
-            customData.push(get_custom_data_list(transcript, transcript.cdsend, transcript.txend, transcript.strand > 0 ? "3'-UTR" : "5'-UTR", gene.plot_coords.g)) 
-            text_symbol.push(symbol) 
 
-            //Add UTRs to shapes
-            shapes.push(utr2)
+            // If CDS region is at the end of the transcript, the whole region is a UTR
+            if (transcript.txend <= transcript.cdsstart) {
 
-            // Add UTR plot coordinates for hover info 
-            x_values.push((transcript.cdsend + ((transcript.txend - transcript.cdsend) / 2)))
-            y_values.push(bottom + 1)
+                //Add UTR info to customData
+                ///UTR1
+                customData.push(get_custom_data_list(transcript, transcript.txstart, transcript.cdsstart, "UTR", gene.plot_coords.g)) 
+                text_symbol.push(symbol) 
+
+                //Add UTRs to shapes
+                ///UR1
+                shapes.push(utr1)
+
+                // Add UTR plot coordinates for hover info 
+                ///UTR1
+                x_values.push((transcript.txstart + ((transcript.cdsstart - transcript.txstart) / 2)))
+                y_values.push(bottom + 1)
+
+            // IF CDS regions ends at the beginning of the transcript, the whole region is a UTR
+            } else if (transcript.txstart >= transcript.cdsend) {
+
+                //Add UTR info to customData
+                ///UTR2
+                customData.push(get_custom_data_list(transcript, transcript.cdsend, transcript.txend, "UTR", gene.plot_coords.g)) 
+                text_symbol.push(symbol) 
+
+                //Add UTRs to shapes
+                ///UTR2
+                shapes.push(utr2)
+
+                // Add UTR plot coordinates for hover info 
+                ///UTR2
+                x_values.push((transcript.cdsend + ((transcript.txend - transcript.cdsend) / 2)))
+                y_values.push(bottom + 1)
+
+            } else {
+
+                //Add UTR info to customData
+                ///UTR1
+                customData.push(get_custom_data_list(transcript, transcript.txstart, transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR", gene.plot_coords.g)) 
+                text_symbol.push(symbol) 
+                ///UTR2
+                customData.push(get_custom_data_list(transcript, transcript.cdsend, transcript.txend, transcript.strand > 0 ? "3'-UTR" : "5'-UTR", gene.plot_coords.g)) 
+                text_symbol.push(symbol) 
+
+                //Add UTRs to shapes
+                ///UR1
+                shapes.push(utr1)
+                ///UTR2
+                shapes.push(utr2)
+
+                // Add UTR plot coordinates for hover info 
+                ///UTR1
+                x_values.push((transcript.txstart + ((transcript.cdsstart - transcript.txstart) / 2)))
+                y_values.push(bottom + 1)
+                ///UTR2
+                x_values.push((transcript.cdsend + ((transcript.txend - transcript.cdsend) / 2)))
+                y_values.push(bottom + 1)
+
+            };
 
             //Sort exon positions 
             exon_2d_array = transcript.position.sort(function(a,b) {return a[0] - b[0]})
