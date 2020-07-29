@@ -201,7 +201,7 @@
         let cdsOffset = 0.5
         var shapes = [];
         var tr = gene.unioned_transcript;
-
+        let strandArray = [];
 
         //Add CDS Region
         shapes.push({type: "rect", x0: tr.cdsstart, x1: tr.cdsend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "deepskyblue", line: {color: "deepskyblue"}, yref: "y2"})
@@ -217,10 +217,28 @@
         //ADD exons
         tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: middle - exonOffset, y1: middle + exonOffset ,
                                               fillcolor: "darkgrey", line: {color: "black" }, yref: "y2"}))
+        //Strand info
+        let strand_marker = tr.strand > 0 ? ">" : "<";
+        let max_index = tr.position.length - 1
+        for (index in tr.position) {
 
-        return(shapes)
+            if (parseInt(index) == max_index) {
+                break
+            }
+            
+            let endPos = tr.position[parseInt(index)][1]
+            let startPos = tr.position[(parseInt(index) + 1)][0]
+
+            let xPos = endPos + ((startPos - endPos) / 2)
+
+            strandArray.push({x: xPos, y: middle + 0.01, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y2"})
+
+        };
+
+        return({"shapes":shapes, "strand_annotation":strandArray})
 
     };
+
 
     function binary_search(A, v) {
         var result = 0;
@@ -238,7 +256,6 @@
         }
         return result
     }
-
 
 
     //Get a list of transcript information to use as a custoomdata imput for plotly hover data
@@ -288,7 +305,7 @@
             for (i = transcript.cdsstart; i < transcript.cdsend; i++) {
                 if (i % strand_interval == 0) {
 
-                    strandArray.push({x: i, y: bottom + 1.0, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y3"})
+                    strandArray.push({x: i, y: bottom + 1.01, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y3"})
 
                 };
             };
@@ -663,7 +680,7 @@
         by_position_depth_traces.push(transcript_map.trace)
 
         //Add shapes to layout 
-        plot_gene_layout.shapes = unioned_transcript_shapes.concat(transcript_map.shapes)
+        plot_gene_layout.shapes = unioned_transcript_shapes.shapes.concat(transcript_map.shapes)
 
         //Adjuste subplot 3 yaxis ranges based on the number of annotated  transcripts 
         plot_gene_layout.yaxis3.range = [transcript_map.bottom, transcript_map.top]
@@ -673,7 +690,7 @@
         plot_gene_layout.yaxis3.ticktext = transcript_map.tick_labels
 
         //Add subplot 3 strand annotations 
-        plot_gene_layout.annotations = transcript_map.strand_annotation
+        plot_gene_layout.annotations = transcript_map.strand_annotation.concat(unioned_transcript_shapes.strand_annotation)
 
         //Plot by base depth 
         Plotly.newPlot("gene_plot", by_position_depth_traces, plot_gene_layout)
