@@ -220,22 +220,46 @@
         //Strand info
         let strand_marker = tr.strand > 0 ? ">" : "<";
         let max_index = tr.position.length - 1
+        let x_values = []
+        let y_values = []
+        let txStrand = tr.strand > 0 ? "+" : "-"
+        let customData = []
         for (index in tr.position) {
+            
+            //Get x and y values for hover data
+            let startPos = tr.position[parseInt(index)][0]
+            let endPos = tr.position[parseInt(index)][1]
 
+            x_values.push(startPos + ((endPos - startPos) / 2 ))
+            y_values.push(middle)
+
+            //Get hover data
+            let gTxStart = gene.plot_coords.g[binary_search(gene.plot_coords.x, tr.txstart)]
+            let gTxEnd = gene.plot_coords.g[binary_search(gene.plot_coords.x, tr.txend)]
+            let gStartPos = gene.plot_coords.g[binary_search(gene.plot_coords.x, startPos)]
+            let gEndPos = gene.plot_coords.g[binary_search(gene.plot_coords.x, endPos)]
+            customData.push({"symbol": gene.symbol, "txStart": gTxStart, "txEnd": gTxEnd, "exonStart": gStartPos, "exonEnd": gEndPos, "strand": txStrand}) 
+
+            //Get strand annotation text
             if (parseInt(index) == max_index) {
                 break
-            }
-            
-            let endPos = tr.position[parseInt(index)][1]
-            let startPos = tr.position[(parseInt(index) + 1)][0]
+            };
 
-            let xPos = endPos + ((startPos - endPos) / 2)
+            let nextStartPos = tr.position[(parseInt(index) + 1)][0]
+            let xPos = endPos + ((nextStartPos - endPos) / 2)
 
             strandArray.push({x: xPos, y: middle + 0.01, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y2"})
 
         };
 
-        return({"shapes":shapes, "strand_annotation":strandArray})
+        //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
+        let trace = {x: x_values, y: y_values, 
+                type: 'scatter', mode:'markers', customdata: customData, name: "Merged Transcript",
+                opacity: 0.0,showlegend: false, yaxis: "y2", marker: { color: "skyblue", size: 15},
+                hovertemplate: '<b>Gene</b>: %{customdata.symbol}<br><b>Strand</b>: %{customdata.strand}<br><b>TX Start</b>: %{customdata.txStart}<br><b>TX End</b>: %{customdata.txEnd}<br><b>Merged Exon Start</b>: %{customdata.exonStart}<br><b>Merged Exon End</b>: %{customdata.exonEnd}<br>',
+            };
+
+        return({"shapes":shapes, "strand_annotation":strandArray, "trace":trace})
 
     };
 
@@ -668,12 +692,10 @@
         //Get gene specific depth traces
         by_position_depth_traces = get_by_position_depth_trace(gene)
 
-        //Add empty subplots 
-        by_position_depth_traces.push({yaxis: "y2"})
-
 
         // get unionized transcript shapes
         unioned_transcript_shapes = get_unioned_transcript_shapes(gene)
+        by_position_depth_traces.push(unioned_transcript_shapes.trace)
         
         // Get per transcript annotation shapes
         transcript_map = get_transcript_shapes(gene)
