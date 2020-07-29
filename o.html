@@ -138,9 +138,9 @@
             },
             yaxis2: {
                 title: "Merged<br>Transcripts",
-                range: [-8,8],
+                range: [0,2],
                 showlegend: false,
-                tickvals: [1],
+                zeroline: false,
                 showticklabels: false,
                 ticktext: gene.unioned_transcript.transcript,
                 domain: [0.4,0.55],
@@ -195,19 +195,29 @@
 
     //Get the unioned transcript shapes
     function get_unioned_transcript_shapes(gene) {
-
-        let transcript_color = 'rgb(100, 100, 100)';
-        let cds_color = 'rgb(100, 100, 255)';
-        let exon_color = 'rgb(200, 100, 255)';
-        var yoff = 1;
+        
+        let middle = 1
+        let exonOffset = 0.25
+        let cdsOffset = 0.5
         var shapes = [];
         var tr = gene.unioned_transcript;
 
-        shapes.push({type: 'rect', x0: tr.txstart, x1: tr.txstop, y0: yoff-0.1, y1: yoff+0.1, line: {color: transcript_color}, yref: "y2" })
-        shapes.push({type: 'rect', x0: tr.cdsstart, x1: tr.cdsstop, y0: yoff-1, y1: yoff+1, line: {color: cds_color},  yref: "y2"})
+        console.log(tr.cdsstart, tr.cdsend)
 
-        tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: yoff-2, y1:yoff+2 ,
-                                              fillcolor: exon_color, line: {color:exon_color}, yref: "y2"}))
+        //Add CDS Region
+        shapes.push({type: "rect", x0: tr.cdsstart, x1: tr.cdsend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "deepskyblue", line: {color: "deepskyblue"}, yref: "y2"})
+        //Add Left Non CDS Region 
+        if (tr.cdsstart < tr.txend) {
+            shapes.push({type: "rect", x0: tr.txstart, x1: tr.cdsstart, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "darkviolet", line: {color: "darkviolet"}, yref: "y2"})
+        }
+        if (tr.cdsend < tr.txend) {
+            shapes.push({type: "rect", x0: tr.cdsend, x1: tr.txend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "darkviolet", line: {color: "darkviolet"}, yref: "y2"})
+        }
+        //ADD transcript 
+        shapes.push({type: "line", x0: tr.txstart, x1: tr.txend, y0: middle, y1: middle, line_color: "black",yref: "y2"}) 
+        //ADD exons
+        tr.position.forEach(p => shapes.push({type: "rect", x0: p[0], x1: p[1], y0: middle - exonOffset, y1: middle + exonOffset ,
+                                              fillcolor: "darkgrey", line: {color: "black" }, yref: "y2"}))
 
         return(shapes)
 
