@@ -204,7 +204,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
       if gap > 0:
         lastx += gap
         result.x.add(lastx)
-        result.g.add(0)
+        # use real value so g is sorted.
+        result.g.add(lastg)
         for sample, dp in dps.mpairs:
           result.depths[sample].add(int32.low)
 
