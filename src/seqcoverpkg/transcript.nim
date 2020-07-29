@@ -28,16 +28,6 @@ proc `$`*(t:Transcript): string =
   result = &"Transcript{system.`$`(t)}"
 
 
-proc UTR5*(t:Transcript): array[2, int] =
-  if t.strand >= 0:
-    return [t.txstart, t.cdsstart]
-  return [t.cdsend, t.txend]
-
-proc UTR3*(t:Transcript): array[2, int] =
-  if t.strand >= 0:
-    return [t.cdsend, t.txend]
-  return [t.txstart, t.cdsstart]
-
 proc UTR_left(t:Transcript): array[2, int] {.inline.} =
   result = [t.txstart, t.cdsstart]
 
@@ -104,10 +94,6 @@ proc union*(trs:seq[Transcript]): Transcript =
 
 proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
   doAssert pos >= u.txstart and pos <= u.txend, &"error can't translate position {pos} outside of unioned transcript ({u.txstart}, {u.txend})"
-  #if pos < u.cdsstart:
-  #  result = pos - u.txstart
-  #  #stderr.write_line "CDS with:", pos, " got:", result
-  #  return
 
   result = u.position[0][0] - u.txstart
 
@@ -127,11 +113,6 @@ proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
       # exon contains current position
       result += (pos - exon[0])
       break
-    #echo "i:", i, " curent:", result
-    #
-
-  #stderr.write_line "with:", pos, " got:", result
-
 
 
 proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
@@ -148,8 +129,8 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): 
   let left = min(1000, extend.int)
 
   doAssert o.txstart >= u.txstart, $o
-  result.txstart = u.find_offset(o.txstart, extend.int, max_gap.int) + left
-  result.cdsstart = u.find_offset(o.cdsstart, extend.int, max_gap.int) + left
+  result.txstart = left + u.find_offset(o.txstart, extend.int, max_gap.int)
+  result.cdsstart = left + u.find_offset(o.cdsstart, extend.int, max_gap.int)
 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc offsets once)?
   for i, o_exon in o.position:

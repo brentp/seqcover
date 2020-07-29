@@ -102,8 +102,8 @@ when isMainModule:
 
       stderr.write_line ">>> u:", gene.transcripts.union
       for t in gene.transcripts:
-        if t.transcript notin ["NM_172108", "NM_172109"]: continue
-        stderr.write_line ">>> t:", $t
+        if t.transcript == "NR_033835":
+          stderr.write_line ">>> t:", $t
       stderr.write_line "######################"
 
       #var t = gene.transcripts[1]
@@ -118,6 +118,10 @@ when isMainModule:
 
       var pd = gene.plot_data(d4s, extend=10)
       gpt.add(pd)
+
+      for t in pd.transcripts:
+        if t.transcript == "NR_033835":
+          stderr.write_line ">>> t:", $t
 
     echo "plot_data = ", (%(gpt))
 
