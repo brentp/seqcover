@@ -202,7 +202,6 @@
         var shapes = [];
         var tr = gene.unioned_transcript;
 
-        console.log(tr.cdsstart, tr.cdsend)
 
         //Add CDS Region
         shapes.push({type: "rect", x0: tr.cdsstart, x1: tr.cdsend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "deepskyblue", line: {color: "deepskyblue"}, yref: "y2"})
@@ -223,26 +222,44 @@
 
     };
 
+    function binary_search(A, v) {
+        var result = 0;
+        var j = A.length
+        while (j != 0){
+            let step = j >> 1
+            let pos = result + step;
+            if(A[pos] < v) {
+              result = pos + 1
+              j -= step + 1
+            } else {
+              j = step
+            }
+
+        }
+        return result
+    }
+
+
 
     //Get a list of transcript information to use as a custoomdata imput for plotly hover data
-    function get_custom_data_list(transcript, exonStart, exonEnd, exonNumber, gposition_list ) {
+    function get_custom_data(transcript, exonStart, exonEnd, exonNumber, xs, gposition_list ) {
 
         //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
         custdata = { "tx_id":  transcript.transcript,
                      "strand":  transcript.strand > 0 ? "+" : "-", 
-                     "tx_start": gposition_list[transcript.txstart] ,
-                     "tx_end": gposition_list[transcript.txend] ,
-                     "cds_start": gposition_list[transcript.cdsstart] ,
-                     "cds_end": gposition_list[transcript.cdsend] ,
-                     "exon_start": gposition_list[exonStart] ,
-                     "exon_end": gposition_list[exonEnd] ,
+                     "tx_start": gposition_list[binary_search(xs, transcript.txstart)] ,
+                     "tx_end": gposition_list[binary_search(xs, transcript.txend)] ,
+                     "cds_start": gposition_list[binary_search(xs, transcript.cdsstart)] ,
+                     "cds_end": gposition_list[binary_search(xs, transcript.cdsend)] ,
+                     "exon_start": gposition_list[binary_search(xs, exonStart)] ,
+                     "exon_end": gposition_list[binary_search(xs, exonEnd)] ,
                      "exon_count": exonNumber }
 
         return(custdata)
 
     }; 
     
-    //Get the transcript shapes for the current region
+	//Get the transcript shapes for the current region
     function get_transcript_shapes(gene) {
         
         let symbol = gene.symbol
@@ -283,7 +300,9 @@
                         line_color: "black", fillcolor: "cyan", yref: "y3"}
 
             //Add UTR info to customData
-            customData.push(get_custom_data_list(transcript, transcript.txstart, transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR", gene.plot_coords.g)) 
+            customData.push(get_custom_data(transcript, transcript.txstart,
+            transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR",
+                                                          gene.plot_coords.x, gene.plot_coords.g)) 
             text_symbol.push(symbol) 
 
             //Add UTRs to shapes
@@ -305,8 +324,9 @@
 
                 //Add UTR info to customData
                 ///UTR1
-                customData.push(get_custom_data_list(transcript, transcript.txstart, transcript.cdsstart, "UTR", gene.plot_coords.g)) 
-                text_symbol.push(symbol) 
+                customData.push(get_custom_data(transcript, transcript.txstart,
+                                                transcript.cdsstart, "UTR", gene.plot_coords.x, gene.plot_coords.g))
+                 text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
                 ///UR1
@@ -322,7 +342,8 @@
 
                 //Add UTR info to customData
                 ///UTR2
-                customData.push(get_custom_data_list(transcript, transcript.cdsend, transcript.txend, "UTR", gene.plot_coords.g)) 
+                customData.push(get_custom_data(transcript, transcript.cdsend,
+                transcript.txend, "UTR", gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
@@ -338,10 +359,15 @@
 
                 //Add UTR info to customData
                 ///UTR1
-                customData.push(get_custom_data_list(transcript, transcript.txstart, transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR", gene.plot_coords.g)) 
+                customData.push(get_custom_data(transcript, transcript.txstart,
+                transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" :
+                                                              "3'-UTR",
+                                                                      gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
                 ///UTR2
-                customData.push(get_custom_data_list(transcript, transcript.cdsend, transcript.txend, transcript.strand > 0 ? "3'-UTR" : "5'-UTR", gene.plot_coords.g)) 
+                customData.push(get_custom_data(transcript, transcript.cdsend,
+                transcript.txend, transcript.strand > 0 ? "3'-UTR" : "5'-UTR",
+                                                           gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
@@ -394,7 +420,8 @@
                              y1: bottom + (1 + exonOffset), line_color: "black", fillcolor: "black", yref: "y3"}) 
 
                 //Add exon info to customData
-                customData.push(get_custom_data_list(transcript, exonstart, exonend, exonNumbers[index], gene.plot_coords.g)) 
+                customData.push(get_custom_data(transcript, exonstart, exonend,
+                exonNumbers[index], gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 // Add exon plot coordinates for hover info
@@ -421,7 +448,6 @@
         return({"shapes": shapes, "top": top, "bottom": bottom, "tick_labels": tick_labels, "tick_vals": tick_vals, "strand_annotation": strandArray, "trace": trace})
 
     };
-
 
     //Get descriptive stats info for stats table
     function get_stats_table(gene, low_depth = 10) {

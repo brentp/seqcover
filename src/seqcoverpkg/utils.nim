@@ -99,8 +99,29 @@ when isMainModule:
     var d4s = read_d4s_to_table(@["d4s/HG00096.final.d4", "d4s/HG00097.final.d4", "d4s/HG00099.final.d4"])
     var gpt: seq[GenePlotData]
     for gene in get_genes(@["PIGA", "KCNQ2", "MUC5B", "ARX", "DNM1", "SLC25A22", "CDLK5", "GABRA1", "ITPA", "GABRB1"]):
-      var pd = gene.plot_data(d4s, extend=100)
+
+      stderr.write_line ">>> u:", gene.transcripts.union
+      for t in gene.transcripts:
+        if t.transcript == "NR_033835":
+          stderr.write_line ">>> t:", $t
+      stderr.write_line "######################"
+
+      #var t = gene.transcripts[1]
+      #var u = gene.transcripts.union
+
+      #var last = t.position[^1]
+      #t.position = @[last]
+      #stderr.write_line "after:", $t
+
+      #stderr.write_line u.translate(t, extend=10)
+      #stderr.write_line "################"
+
+      var pd = gene.plot_data(d4s, extend=10)
       gpt.add(pd)
+
+      for t in pd.transcripts:
+        if t.transcript == "NR_033835":
+          stderr.write_line ">>> t:", $t
 
     echo "plot_data = ", (%(gpt))
 
