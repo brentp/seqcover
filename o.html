@@ -295,7 +295,7 @@
 
 
     //Get a list of transcript information to use as a custoomdata imput for plotly hover data
-    function get_custom_data(transcript, exonStart, exonEnd, exonNumber, xs, gposition_list ) {
+    function get_custom_data(transcript, exonStart, exonEnd, exonNumber, cdsExon, feature, xs, gposition_list ) {
 
         //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
         custdata = { "tx_id":  transcript.transcript,
@@ -306,7 +306,9 @@
                      "cds_end": gposition_list[binary_search(xs, transcript.cdsend)] ,
                      "exon_start": gposition_list[binary_search(xs, exonStart)] ,
                      "exon_end": gposition_list[binary_search(xs, exonEnd)] ,
-                     "exon_count": exonNumber }
+                     "exon_count": exonNumber,
+                     "CDS": cdsExon,
+                     "Feature": feature}
 
         return(custdata)
 
@@ -340,9 +342,7 @@
             let strand_marker = transcript.strand > 0 ? ">" : "<";
             for (i = transcript.cdsstart; i < transcript.cdsend; i++) {
                 if (i % strand_interval == 0) {
-
                     strandArray.push({x: i, y: bottom + 1.01, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y3"})
-
                 };
             };
 
@@ -351,19 +351,6 @@
             let utr1 = {type: "rect", x0:transcript.txstart, x1:transcript.cdsstart, 
                         y0: bottom + (1 - utrOffset), y1: bottom + (1 + utrOffset),
                         line_color: "black", fillcolor: "cyan", yref: "y3"}
-
-            //Add UTR info to customData
-            customData.push(get_custom_data(transcript, transcript.txstart,
-            transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR",
-                                                          gene.plot_coords.x, gene.plot_coords.g)) 
-            text_symbol.push(symbol) 
-
-            //Add UTRs to shapes
-            shapes.push(utr1)
-
-            // Add UTR plot coordinates for hover info 
-            x_values.push((transcript.txstart + ((transcript.cdsstart - transcript.txstart) / 2)))
-            y_values.push(bottom + 1)
 
 
             //Get End UTR 
@@ -378,7 +365,7 @@
                 //Add UTR info to customData
                 ///UTR1
                 customData.push(get_custom_data(transcript, transcript.txstart,
-                                                transcript.cdsstart, "UTR", gene.plot_coords.x, gene.plot_coords.g))
+                transcript.cdsstart, "UTR", "UTR", "UTR", gene.plot_coords.x, gene.plot_coords.g))
                  text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
@@ -396,7 +383,7 @@
                 //Add UTR info to customData
                 ///UTR2
                 customData.push(get_custom_data(transcript, transcript.cdsend,
-                transcript.txend, "UTR", gene.plot_coords.x, gene.plot_coords.g)) 
+                transcript.txend, "UTR", "UTR", "UTR", gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
@@ -413,14 +400,13 @@
                 //Add UTR info to customData
                 ///UTR1
                 customData.push(get_custom_data(transcript, transcript.txstart,
-                transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" :
-                                                              "3'-UTR",
-                                                                      gene.plot_coords.x, gene.plot_coords.g)) 
+                transcript.cdsstart, transcript.strand > 0 ? "5'-UTR" : "3'-UTR",
+                "UTR", "UTR", gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
                 ///UTR2
                 customData.push(get_custom_data(transcript, transcript.cdsend,
                 transcript.txend, transcript.strand > 0 ? "3'-UTR" : "5'-UTR",
-                                                           gene.plot_coords.x, gene.plot_coords.g)) 
+                "UTR", "UTR", gene.plot_coords.x, gene.plot_coords.g)) 
                 text_symbol.push(symbol) 
 
                 //Add UTRs to shapes
@@ -443,43 +429,123 @@
             exon_2d_array = transcript.position.sort(function(a,b) {return a[0] - b[0]})
             
             //Count cds exons
-            let cdsExons = []
             let cdsExonCount = 0
             for (index in exon_2d_array) {
 
                 let exonPos = transcript.position[index]
 
-                if (exonPos[1] > transcript.cdsstart & exonPos[0] < transcript.cdsend) {
-                    cdsExons.push(exonPos)
-                    cdsExonCount += 1
-                };
+                if (exonPos[1] > transcript.cdsstart & exonPos[0] < transcript.cdsend) {cdsExonCount += 1};
 
             };
 
             // Get exon numbers
-            var exonNumbers = transcript.strand > 0 ? pv.range(1,cdsExonCount + 1) : pv.range(cdsExonCount, 0, -1) 
+            let exonNumbers = transcript.strand > 0 ? pv.range(1,cdsExonCount + 1) : pv.range(cdsExonCount, 0, -1) 
+            let exonNumberOffset = 0
 
             //Add exon shapes
-            for (index in cdsExons) {
+            for (index in exon_2d_array) {
                 
-                let exonPos = cdsExons[index]
+                let exonPos = exon_2d_array[index]
 
-                //Get exon start and end positions
-                let exonstart = exonPos[0] > transcript.cdsstart ? exonPos[0] : transcript.cdsstart
-                let exonend = exonPos[1] < transcript.cdsend ? exonPos[1] : transcript.cdsend 
+                //If exon in CDS region
+                if (exonPos[1] > transcript.cdsstart & exonPos[0] < transcript.cdsend) {
 
-                //Add exon to shapes
-                shapes.push({type: "rect", x0: exonstart, x1: exonend,  y0: bottom + (1 - exonOffset), 
-                             y1: bottom + (1 + exonOffset), line_color: "black", fillcolor: "black", yref: "y3"}) 
+                    //If exon start is before the CDS start
+                    /// Half coding exon
+                    if (exonPos[0] < transcript.cdsstart) {
 
-                //Add exon info to customData
-                customData.push(get_custom_data(transcript, exonstart, exonend,
-                exonNumbers[index], gene.plot_coords.x, gene.plot_coords.g)) 
-                text_symbol.push(symbol) 
+                        let nonCdsExonStart = exonPos[0]
+                        let cdsExonStart = transcript.cdsstart
+                        let exonEnd = exonPos[1]
 
-                // Add exon plot coordinates for hover info
-                x_values.push((exonstart + ((exonend - exonstart) / 2)))
-                y_values.push(bottom + 1)
+                        //Add exon to shapes
+                        /// Non CDS exon Portion 
+                        shapes.push({type: "rect", x0: nonCdsExonStart, x1: cdsExonStart,  y0: bottom + (1 - exonOffset), 
+                                     y1: bottom + (1 + exonOffset), opacity: 0.4, line_color: "black", fillcolor: "grey", yref: "y3"}) 
+                        //CDS exon poriton 
+                        shapes.push({type: "rect", x0: cdsExonStart, x1: exonEnd,  y0: bottom + (1 - exonOffset), 
+                                     y1: bottom + (1 + exonOffset),  line_color: "black", fillcolor: "black", yref: "y3"}) 
+
+                        //Add exon info to customData
+                        customData.push(get_custom_data(transcript, nonCdsExonStart, exonEnd,
+                        exonNumbers[(parseInt(index) - exonNumberOffset)], "Partial", "Partial Coding Exon", gene.plot_coords.x, gene.plot_coords.g)) 
+                        text_symbol.push(symbol) 
+
+                        // Add exon plot coordinates for hover info
+                        x_values.push(cdsExonStart)
+                        y_values.push(bottom + 1)
+
+
+                    // If Exon end is after CDS end
+                    /// Half coding exon
+                    } else if (exonPos[1] > transcript.cdsend) {
+
+                        let exonStart = exonPos[0]
+                        let cdsExonEnd = transcript.cdsend
+                        let nonCdsExonEnd = exonPos[1]
+
+                        //Add exon to shapes
+                        /// CDS exon Portion 
+                        shapes.push({type: "rect", x0: exonStart, x1: cdsExonEnd,  y0: bottom + (1 - exonOffset), 
+                                     y1: bottom + (1 + exonOffset), line_color: "black", fillcolor: "black", yref: "y3"}) 
+                        /// Non CDS exon poriton 
+                        shapes.push({type: "rect", x0: cdsExonEnd, x1: nonCdsExonEnd,  y0: bottom + (1 - exonOffset), 
+                                     y1: bottom + (1 + exonOffset), opacity: 0.4, line_color: "black", fillcolor: "grey", yref: "y3"}) 
+
+                        //Add exon info to customData
+                        customData.push(get_custom_data(transcript, exonStart, nonCdsExonEnd,
+                        exonNumbers[(parseInt(index) - exonNumberOffset)], "Partial", "Partial Coding Exon", gene.plot_coords.x, gene.plot_coords.g)) 
+                        text_symbol.push(symbol) 
+
+                        // Add exon plot coordinates for hover info
+                        x_values.push(cdsExonEnd)
+                        y_values.push(bottom + 1)
+
+                    // IF exon is completely contained within the CDS region
+                    //Full coding exon
+                    } else {
+
+                        let exonstart = exonPos[0]
+                        let exonend = exonPos[1] 
+
+                        //Add exon to shapes
+                        shapes.push({type: "rect", x0: exonstart, x1: exonend,  y0: bottom + (1 - exonOffset), 
+                                     y1: bottom + (1 + exonOffset), line_color: "black", fillcolor: "black", yref: "y3"}) 
+
+                        //Add exon info to customData
+                        customData.push(get_custom_data(transcript, exonstart, exonend,
+                        exonNumbers[(parseInt(index) - exonNumberOffset)], "True", "Coding Exon", gene.plot_coords.x, gene.plot_coords.g)) 
+                        text_symbol.push(symbol) 
+
+                        // Add exon plot coordinates for hover info
+                        x_values.push((exonstart + ((exonend - exonstart) / 2)))
+                        y_values.push(bottom + 1)
+                    }
+                    
+
+                // If exon not in CDS region
+                //Non CDS exon
+                } else {
+
+                    exonNumberOffset += 1
+
+                    let exonstart = exonPos[0]
+                    let exonend = exonPos[1] 
+
+                    //Add exon to shapes
+                    shapes.push({type: "rect", x0: exonstart, x1: exonend,  y0: bottom + (1 - exonOffset), 
+                                 y1: bottom + (1 + exonOffset), opacity: 0.4, line_color: "black", fillcolor: "grey", yref: "y3"}) 
+
+                    //Add exon info to customData
+                    customData.push(get_custom_data(transcript, exonstart, exonend,
+                    "NA", "False", "Non-Coding Exon", gene.plot_coords.x, gene.plot_coords.g)) 
+                    text_symbol.push(symbol) 
+
+                    // Add exon plot coordinates for hover info
+                    x_values.push((exonstart + ((exonend - exonstart) / 2)))
+                    y_values.push(bottom + 1)
+
+                };
 
             };
             
@@ -495,7 +561,7 @@
         let trace = {x: x_values, y: y_values, text: text_symbol, 
                 type: 'scatter', mode:'markers', customdata: customData, name: "transcripts",
                 opacity: 0.0,showlegend: false, yaxis: "y3", marker: { color: "darkcyan", size: 15},
-                hovertemplate: '<b>Gene</b>: %{text}<br><b>Transcript ID</b>: %{customdata.tx_id}<br><b>Strand</b>: %{customdata.strand}<br><b>TX Start</b>: %{customdata.tx_start}<br><b>TX End</b>: %{customdata.tx_end}<br><b>CDS Start</b>: %{customdata.cds_start}<br><b>CDS End</b>: %{customdata.cds_end}<br><b>Exon Start</b>: %{customdata.exon_start}<br><b>Exon End</b>: %{customdata.exon_end}<br><b>Exon Number</b>: %{customdata.exon_count}<br>',
+                hovertemplate: '<b>Gene</b>: %{text}<br><b>Transcript ID</b>: %{customdata.tx_id}<br><b>Strand</b>: %{customdata.strand}<br><b>Feature</b>: %{customdata.Feature}<br><b>Start Position</b>: %{customdata.exon_start}<br><b>End Position</b>: %{customdata.exon_end}<br><b>Coding Region</b>: %{customdata.CDS}<br><b>CDS Exon Number</b>: %{customdata.exon_count}<br>',
             };
 
         return({"shapes": shapes, "top": top, "bottom": bottom, "tick_labels": tick_labels, "tick_vals": tick_vals, "strand_annotation": strandArray, "trace": trace})
