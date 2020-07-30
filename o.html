@@ -148,6 +148,7 @@
             },
             yaxis3: {
                 range: [0,2],
+                zeroline: false,
                 showlegend: false,
                 domain: [0.0,0.40]
             },
@@ -559,7 +560,7 @@
 
         //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
         let trace = {x: x_values, y: y_values, text: text_symbol, 
-                type: 'scatter', mode:'markers', customdata: customData, name: "transcripts",
+                type: 'scatter', mode:'markers', customdata: customData, name: "Transcripts",
                 opacity: 0.0,showlegend: false, yaxis: "y3", marker: { color: "darkcyan", size: 15},
                 hovertemplate: '<b>Gene</b>: %{text}<br><b>Transcript ID</b>: %{customdata.tx_id}<br><b>Strand</b>: %{customdata.strand}<br><b>Feature</b>: %{customdata.Feature}<br><b>Start Position</b>: %{customdata.exon_start}<br><b>End Position</b>: %{customdata.exon_end}<br><b>Coding Region</b>: %{customdata.CDS}<br><b>CDS Exon Number</b>: %{customdata.exon_count}<br>',
             };
