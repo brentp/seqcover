@@ -115,7 +115,7 @@ proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
       break
 
 
-proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32=100): Transcript =
+proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32): Transcript =
   ## given a unioned transcript, translate the positions in u to plot
   ## coordinates and genomic coordinates.
 
@@ -155,7 +155,7 @@ proc get_chrom(chrom:string, dp:D4): string =
   else:
     raise newException(KeyError, "chromosome not found:" & chrom)
 
-proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, utrs:bool=true, max_gap:uint32=100): plot_coords =
+proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
   ## introns. g: is the actual coordinates.
@@ -183,6 +183,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
   var lastx:uint32
   var lastg:uint32
   # gap should be min(100, position[i+1][0] - positoin[i][1])
+  stderr.write_line &"[seqcover] {tr} {extend} {max_gap}"
 
   for i, p in tr.position:
 
@@ -209,6 +210,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
         for sample, dp in dps.mpairs:
           result.depths[sample].add(int32.low)
 
+    stderr.write_line "i:", $i, &"exon:{p}", " left:", $left, " right:",  $right
     result.g.add(toSeq(left..<right))
     result.x.add(toSeq((lastx..<(lastx + size))))
 
@@ -231,15 +233,15 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, u
   doAssert result.x.len == result.g.len
 
 
-proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32=10, utrs:bool=true): GenePlotData =
+proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
   result.unioned_transcript = g.transcripts.union
 
-  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, utrs)
+  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, max_gap, utrs)
   for t in g.transcripts:
     if t.`chr` != result.unioned_transcript.`chr`: continue
-    result.transcripts.add(result.unioned_transcript.translate(t, extend=extend))
+    result.transcripts.add(result.unioned_transcript.translate(t, extend=extend, max_gap=max_gap))
 
-  result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend)
+  result.unioned_transcript = result.unioned_transcript.translate(result.unioned_transcript, extend=extend, max_gap=max_gap)
 

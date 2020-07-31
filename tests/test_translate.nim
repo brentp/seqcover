@@ -48,4 +48,20 @@ suite "translate suite":
     check ot.position[0][1] == ot.cdsend + 3
     check ot.position[0][0] - ot.cdsstart == o.position[0][0] - o.cdsstart
 
+  test "translation doesn't change exon length and adjusts intron length correctly":
+
+    var u = Transcript(cdsstart: 9551, cdsend: 26688, chr: "20", position: @[[8675, 9033], [9497, 9617], [13168, 13226], [13257, 13383], [13984, 14058], [15280, 15312], [18516, 18632]], strand: 1, transcript: "union", txstart: 8675, txend: 27449)
+
+    var ut = u.translate(u, extend.uint32, max_gap.uint32)
+
+    for i, e in ut.position:
+      check e[1] - e[0] == u.position[i][1] - u.position[i][0]
+
+      if i > 0:
+        var l = ut.position[i-1]
+        var r = e
+        check r[0] - l[1] == min(2 * extend + max_gap, u.position[i][0] - u.position[i - 1][1])
+
+    echo "ut:", ut
+
 
