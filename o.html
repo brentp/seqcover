@@ -58,6 +58,7 @@
     }
     </style>
 </head>
+
 <body>
     <h1> SEQCOVER </h1>
         <div class="container-fluid p-3">
@@ -81,7 +82,7 @@
         <div class="row pb-3">
             <div class="col-sm-3">
             </div>
-            <div class="col-sm-3">
+            <div class="col-sm-4">
                 <button type="button" class="btn btn-outline-primary" data-toggle="button" id="showTranscripts" aria-pressed="false" autocomplete="false">
                   Show Transcripts
                 </button>
@@ -113,6 +114,12 @@
         </div>
     </div>
     <div class="container-fluid p-1">
+        <div class="row">
+            <div class="col-sm-1"></div>
+            <div class="col-sm-10">
+                <hr>
+            </div>
+        </div>
         <div class="row pt-3">
             <div class="col-2"></div>
             <div class="col-8">
@@ -296,6 +303,7 @@
             //Add region type text
             strandArray.push({x: (tr.txstart + (tr.cdsstart - tr.txstart) / 2), y: middle + textOffset, text: "Non-Coding Region", font: {color :"darkviolet", font: 20}, showarrow: false, yref: "y2"})
         }
+        //Add Right Non Cds Region
         if (tr.cdsend < tr.txend) {
             shapes.push({type: "rect", x0: tr.cdsend, x1: tr.txend, y0: middle - cdsOffset, y1: middle + cdsOffset, opacity: 0.5, fillcolor: "darkviolet", line: {color: "darkviolet"}, yref: "y2"})
 
@@ -315,6 +323,7 @@
         let y_values = []
         let txStrand = tr.strand > 0 ? "+" : "-"
         let customData = []
+        let markerOffset = showTranscripts ? 0.01 : 0.02;
         for (index in tr.position) {
             
             //Get x and y values for hover data
@@ -339,11 +348,9 @@
             let nextStartPos = tr.position[(parseInt(index) + 1)][0]
             let xPos = endPos + ((nextStartPos - endPos) / 2)
 
-            strandArray.push({x: xPos, y: middle + 0.01, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y2"})
-
+            strandArray.push({x: xPos, y: middle + markerOffset, text: strand_marker, font: {color: "black", size: 16}, opacity: 0.7, showarrow: false, yref: "y2"})
         };
 
-        //Format = transcript id, strand, txstart, txend, cdsstart, cdsend, exon/utr start, exon/utr end, exon number or utr type 
         let trace = {x: x_values, y: y_values, 
                 type: 'scatter', mode:'markers', customdata: customData, name: "Merged Transcript",
                 opacity: 0.0,showlegend: false, yaxis: "y2", marker: { color: "skyblue", size: 15},
@@ -351,7 +358,6 @@
             };
 
         return({"shapes":shapes, "strand_annotation":strandArray, "trace":trace})
-
     };
 
 
