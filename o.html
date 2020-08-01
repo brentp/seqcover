@@ -148,6 +148,7 @@
 
     //Global Variables
     var nan = NaN; // hack to support json dumped with NaN values.
+    var initalIndex = 0
     var currentRegion = "";
     var nonCdsChecked = false;
     var utrsChecked = false;
@@ -171,11 +172,25 @@
 
         //Store the index of the region in the plot data object.
         region_index_map[region_string] = index 
+
+    };
+
+    //Create sorted select list
+    let ind = 0
+    for (region of Object.keys(region_index_map).sort()) {
         
+        //Get the first sorted region for inital display
+        if (ind == 0) {initalIndex = region_index_map[region]}
+
         //Add region to select options
-        var option = $("<option>" + region_string + "</option>");
+        var option = $("<option>" + region + "</option>");
         select.append(option)
-    }
+
+        ind += 1
+
+    };
+
+
 
     //Add new select options to regionfilter div
     $("#regionfilter").append(select);
@@ -1031,7 +1046,7 @@
 
         //Plot first gene
         for (region in region_index_map){
-            if (region_index_map[region] == 0) {
+            if (region_index_map[region] == initalIndex) {
                 currentRegion = region
                 generate_plots(region)
                 break
