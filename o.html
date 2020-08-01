@@ -19,6 +19,28 @@
     .big_div {
           height: 80vh;
         }
+
+    .cdsSquare {
+      height: 15px;
+      width: 30px;
+      background-color: #000000;
+
+    }
+
+    .nonCdsSquare {
+      height: 15px;
+      width: 30px;
+      border: 1px solid #000000;
+      background-color: #808080;
+      opacity: 0.25;
+    }
+
+    .utrSquare {
+      height: 10px;
+      width: 25px;
+      border: 1px solid #000000;
+      background-color: #00FFFF;
+    }
     
     html,body { height: 100%; margin: 0px; padding: 0px; }
     .form-control.selectize-control {
@@ -52,7 +74,37 @@
                 <div class=big_div id="gene_plot"></div>
             </div>
         </div>
-        <div class="row ">
+        <div class="row pb-3">
+            <div class="col-sm-3">
+            </div>
+            <div class="col-sm-1">
+                <h6> Included Exons:</h6>
+            </div>
+            <div class="col-sm-1">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="cdsExons" disabled checked></input>
+                  <label class="form-check-label" for="inlineCheckbox1">CDS</label>
+                </div>
+                <div class="cdsSquare"></div>
+            </div>
+            <div class="col-sm-1">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="utrs"></input>
+                  <label class="form-check-label" for="inlineCheckbox2">UTR</label>
+                </div>
+                <div class="utrSquare"></div>
+            </div>
+            <div class="col-sm-2">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="nonCdsExons"></input>
+                  <label class="form-check-label" for="inlineCheckbox2">Non-CDS</label>
+                </div>
+                <div class="nonCdsSquare"></div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-1">
+        <div class="row pt-3">
             <div class="col-2"></div>
             <div class="col-8">
                 <table id="stats_table"></table>
@@ -72,13 +124,15 @@
 
 <script>
 
-    var nan = NaN; // hack to support json dumped with NaN values.
-
     /*
     ------------------------------------------------------------------------------------------------------------------
                                                         SETUP 
     ------------------------------------------------------------------------------------------------------------------
     */
+
+    var nan = NaN; // hack to support json dumped with NaN values.
+    var nonCdsChecked = false;
+    var utrsChecked = false;
 
     //Get gene/region names and add them to the available regions form 
     var region_index_map = {};
@@ -851,6 +905,9 @@
     //Controller function for generating gene/region sepecific plots
     function generate_plots(selected_region) {
 
+        console.log("START. NON CDS CHECKED: " + nonCdsChecked )
+        console.log("START. UTRS CHECKED: " + utrsChecked )
+
         //Update region specific header  
         var header = document.getElementById("region_header")
         header.innerHTML = selected_region
@@ -894,6 +951,22 @@
 
     });
 
+    //Turn on or off UTR regions in the transcript plot
+    $("#utrs").on('change', function(e) {
+        
+        utrsChecked = this.checked
+        console.log("Is Checked:" + utrsChecked)
+
+    });
+
+
+    //Turn on or off Non-CDS Exons in the transcript plot
+    $("#nonCdsExons").on('change', function(e) {
+        
+        nonCdsChecked = this.checked
+        console.log("Is Checked:" + nonCdsChecked)
+
+    });
 
     
 
