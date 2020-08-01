@@ -20,6 +20,10 @@
           height: 80vh;
         }
 
+    .med_div {
+          height: 45vh;
+        }
+
     .cdsSquare {
       height: 15px;
       width: 30px;
@@ -71,11 +75,16 @@
         </div>
         <div class="row">
             <div class="col-12">
-                <div class=big_div id="gene_plot"></div>
+                <div class=med_div id="gene_plot"></div>
             </div>
         </div>
         <div class="row pb-3">
             <div class="col-sm-3">
+            </div>
+            <div class="col-sm-3">
+                <button type="button" class="btn btn-outline-primary" data-toggle="button" id="showTranscripts" aria-pressed="true" autocomplete="off">
+                  Show Transcripts
+                </button>
             </div>
             <div class="col-sm-1">
                 <h6> Included Exons:</h6>
@@ -135,6 +144,7 @@
     var currentRegion = "";
     var nonCdsChecked = false;
     var utrsChecked = false;
+    var showTranscripts = false;
 
     //Get gene/region names and add them to the available regions form 
     var region_index_map = {};
@@ -190,7 +200,7 @@
             },
             yaxis: {
                 title: "Depth",
-                domain: [0.55,0.90]
+                domain: [0.3,0.90]
             },
             yaxis2: {
                 title: "Merged<br>Transcripts",
@@ -199,15 +209,10 @@
                 zeroline: false,
                 showticklabels: false,
                 ticktext: gene.unioned_transcript.transcript,
-                domain: [0.4,0.55],
+                domain: [0.0,0.3],
 
             },
-            yaxis3: {
-                range: [0,2],
-                zeroline: false,
-                showlegend: false,
-                domain: [0.0,0.40]
-            },
+
             hovermode: 'closest',
             showlegend: true,
             legend: {
@@ -220,6 +225,23 @@
                 bordercolor: '#eeeeee'
             },
         };
+
+
+        //Add the 3rd layout if show transcripts is on
+        if (showTranscripts) {
+            
+            //Update yaxis domains
+            layout.yaxis.domain = [0.55,0.90] 
+            layout.yaxis2.domain =  [0.4,0.55]
+
+            //Add 3rd axis
+            layout["yaxis3"] = {range: [0,2],
+                                zeroline: false,
+                                showlegend: false,
+                                domain: [0.0,0.40]
+                                }
+        };
+
 
         return(layout)
 
@@ -892,22 +914,33 @@
         unioned_transcript_shapes = get_unioned_transcript_shapes(gene)
         by_position_depth_traces.push(unioned_transcript_shapes.trace)
         
-        // Get per transcript annotation shapes
-        transcript_map = get_transcript_shapes(gene)
-        by_position_depth_traces.push(transcript_map.trace)
+        //If show transcripts is turned on, who the transcript plot
+        if (showTranscripts) {
+            // Get per transcript annotation shapes
+            transcript_map = get_transcript_shapes(gene)
+            by_position_depth_traces.push(transcript_map.trace)
 
-        //Add shapes to layout 
-        plot_gene_layout.shapes = unioned_transcript_shapes.shapes.concat(transcript_map.shapes)
+            //Add shapes to layout 
+            plot_gene_layout.shapes = unioned_transcript_shapes.shapes.concat(transcript_map.shapes)
 
-        //Adjuste subplot 3 yaxis ranges based on the number of annotated  transcripts 
-        plot_gene_layout.yaxis3.range = [transcript_map.bottom, transcript_map.top]
+            //Adjuste subplot 3 yaxis ranges based on the number of annotated  transcripts 
+            plot_gene_layout.yaxis3.range = [transcript_map.bottom, transcript_map.top]
 
-        //Add subplot 3 yaxis tick labels (transcript ids)
-        plot_gene_layout.yaxis3.tickvals = transcript_map.tick_vals
-        plot_gene_layout.yaxis3.ticktext = transcript_map.tick_labels
+            //Add subplot 3 yaxis tick labels (transcript ids)
+            plot_gene_layout.yaxis3.tickvals = transcript_map.tick_vals
+            plot_gene_layout.yaxis3.ticktext = transcript_map.tick_labels
 
-        //Add subplot 3 strand annotations 
-        plot_gene_layout.annotations = transcript_map.strand_annotation.concat(unioned_transcript_shapes.strand_annotation)
+            //Add subplot 3 strand annotations 
+            plot_gene_layout.annotations = transcript_map.strand_annotation.concat(unioned_transcript_shapes.strand_annotation)
+
+
+        } else {
+
+            //Add shapes to layout 
+            plot_gene_layout.shapes = unioned_transcript_shapes.shapes
+            plot_gene_layout.annotations = unioned_transcript_shapes.strand_annotation
+
+        };
 
         //Plot by base depth 
         Plotly.newPlot("gene_plot", by_position_depth_traces, plot_gene_layout)
@@ -1035,6 +1068,32 @@
     $("#nonCdsExons").on('change', function(e) {
         
         nonCdsChecked = this.checked
+
+        //Redraw per base depth plot
+        //Index of plot in plot_data and gene data
+        var plotIndex = region_index_map[currentRegion];
+        var selectedGene = plot_data[plotIndex];
+
+        //Plot per base depths 
+        plot_per_base_depth(selectedGene)
+
+    });
+
+    //Turn on and off the transcript plot
+    $("#showTranscripts").click(function() {
+
+        //Update bool value for transcripts
+        showTranscripts = !(showTranscripts)
+
+        // Update button text
+        // Update div class
+        if (showTranscripts) {
+            $(this).text("Hide Transcripts")
+            document.getElementById("gene_plot").className = "big_div";
+        } else {
+            $(this).text("Show Transcripts")
+            document.getElementById("gene_plot").className = "med_div";
+        };
 
         //Redraw per base depth plot
         //Index of plot in plot_data and gene data
