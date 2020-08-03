@@ -302,6 +302,8 @@
     //Get the unioned transcript shapes
     function get_unioned_transcript_shapes(gene) {
         
+        console.log(gene)
+        
         let middle = 1
         let exonOffset = 0.25
         let cdsOffset = 0.5
@@ -837,89 +839,6 @@
         return(layout)
     };
 
-
-    //per Sample depth proportion traces
-    function get_proportion_trace(gene) {
-
-        let traces = []
-
-        for (sample in gene.plot_coords.depths) {
-
-            // Depths 
-            dp = dp.filter(value => value > -1000);
-
-            let depth_map = {}
-            let depth_values = new Set()
-            let dp_count = 0 
-            //get the number of 
-            for (depth of dp) {
-                
-                dp_count += 1
-                
-                depth_values.add(depth)
-
-                if (!(depth in depth_map)) {
-                    depth_map[depth] = 1
-
-                } else {
-                    depth_map[depth] += 1
-                };
-            };
-
-            let x_values = []
-            let y_values = []
-            let counter = 0
-            //Calculate proportion scores
-            for (key of [...depth_values].sort(function(a,b) {return b-a})) {
-
-                //increment counter
-                counter += depth_map[key]
-
-                //Add x and y valuess
-                x_values.push(key)
-                y_values.push(counter / dp_count)
-
-            };
-
-            let trace = {x: x_values, y: y_values,  mode: "lines", 
-                         name: sample, line: {width: 1}, 
-                         hovertemplate: "<b>Depth</b>:%{x}<br><b>Proportion</b>:%{y}"}
-
-            traces.push(trace)
-        };
-        
-        return(traces)
-    };
-
-
-    //by proprotion plot layout
-    function get_proportion_layout() {
-
-        var layout = {
-            autosize: true,
-            title: "Depth Proportion per Sample",
-            xaxis: {
-                title: "Depth"
-            },
-            yaxis: {
-                title: "Proportion",
-                domain: [0.0,0.9],
-            },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                xanchor: "right",
-                yanchor: "top",
-                y: 1,
-                x: 1,
-                orientation: "h",
-                borderwidth: 1,
-                bordercolor: '#eeeeee'
-            },
-        };
-        return(layout)
-    };
-    
 
     /*
     ------------------------------------------------------------------------------------------------------------------
