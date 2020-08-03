@@ -168,16 +168,14 @@
         //Get region gene info
         var symbol = plot_data[index].symbol;
         var chrom = plot_data[index].unioned_transcript.chr;
-        var genomic_positions = plot_data[index].plot_coords.g;
-        var start = Math.min.apply(null,genomic_positions.filter(Boolean));
-        var end = Math.max(...genomic_positions);
+        var start = plot_data[index].plot_coords.g[0]
+        var end = plot_data[index].plot_coords.g[plot_data[index].plot_coords.g.length - 1];
 
         //Get region string
         var region_string = symbol + " "+ chrom + ":" + start + "-" + end
 
         //Store the index of the region in the plot data object.
         region_index_map[region_string] = index 
-
     };
 
     //Create sorted select list
