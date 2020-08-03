@@ -771,31 +771,47 @@
 
         let traces = []
         let group_min_dp = 1000
-        let group_max_dp = 0
+        let group_max_dp = -1
 
+        // Iterate through each samples depths1
         for (sample in gene.plot_coords.depths) {
-
+                
             // Depths 
             let dp = gene.plot_coords.depths[sample]
 
-            //Convert null values to NaN 
-            dp = dp.filter(value => value > -1000);
+            //Get local min and max depths 
+            let dp_min = 1000
+            let dp_max = -1
+            for (depth of dp) {
 
-            //min and max 
-            let dp_min = Math.min(...dp)
-            group_min_dp = dp_min < group_min_dp ? dp_min : group_min_dp
-            let dp_max = Math.max(...dp)
-            group_max_dp = dp_max > group_max_dp ? dp_max : group_max_dp
+                //Skip null depths
+                if (depth < 0) {continue};
+
+                //Update local min and max
+                if (depth < dp_min) {dp_min = depth}
+                if (depth > dp_max) {dp_max = depth}
+
+            };
+
+            //Update group min and max
+            if (dp_min < group_min_dp) {group_min_dp = dp_min}
+            if (dp_max > group_max_dp) {group_max_dp = dp_max}
 
             // X and Y values
             let x_values = pv.range(dp_min,dp_max+1)
             let y_values = new Array(x_values.length).fill(0)
 
-            //Get y values
-            //index of depth in x_values = depth - dp_min
-            dp.forEach(depth => y_values[(depth - dp_min)] += 1)
+            // Add y values based on depth value
+            for (depth of dp) {
 
+                //Skip null depths
+                if (depth < 0) {continue};
 
+                //Increment depth at depth index 
+                y_values[(depth - dp_min)] += 1
+            }; 
+
+            //Create trace
             let trace = {x: x_values, y: y_values,  mode: "lines", 
                          name: sample, line: {width: 1}, 
                          hovertemplate: "<b>Depth</b>:%{x}<br><b>Count</b>:%{y}"}
