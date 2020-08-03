@@ -71,7 +71,12 @@
     <div class="container-fluid p-1">
         <div class="row pt-3">
             <div class="col-6">
-                <h4 id="region_header">REGION: </h4>
+                <h4> Region: </h4>
+                <h5 id="region_header">REGION: </h5>
+            </div>
+            <div class="col-6">
+               <h5>Gene Description:</h5>
+               <p id="gene_description">Description</p> 
             </div>
         </div>
         <div class="row">
@@ -1021,13 +1026,17 @@
     //Controller function for generating gene/region sepecific plots
     function generate_plots(selected_region) {
 
-        //Update region specific header  
-        var header = document.getElementById("region_header")
-        header.innerHTML = selected_region
-        
         //Index of plot in plot_data and gene data
         var plotIndex = region_index_map[selected_region];
         var selectedGene = plot_data[plotIndex];
+
+        //Update region specific header  
+        var header = document.getElementById("region_header")
+        header.innerHTML = selected_region
+
+        //Update gene description 
+        var description = document.getElementById("gene_description")
+        description.innerHTML = selectedGene.description
 
         //Plot per base depths 
         plot_per_base_depth(selectedGene)
