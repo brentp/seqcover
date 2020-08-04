@@ -166,15 +166,14 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
 
   result.depths = newTable[string, seq[int32]]()
 
-  var right = tr.cdsstart.int
-
+  var right = tr.position[0][0].int
   var stop = tr.txend + min(1000, extend.int)
 
-  stderr.write_line &"[seqcover] {tr} {extend} {max_gap}"
   if utrs:
     result.g = toSeq(left.uint32 ..< right.uint32)
     result.x = toSeq(0'u32 ..< result.g.len.uint32)
-    stderr.write_line &"utr: <adding> {result.g[0]} ..< {result.g[^1]}"
+    when defined(debug):
+      stderr.write_line &"utr: <adding> {result.g[0]} ..< {result.g[^1]}"
     for sample, dp in dps.mpairs:
         result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
 
@@ -185,7 +184,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
 
     lastx = result.x[^1] + 1
     lastg = result.g[^1] + 1
-    stderr.write_line "\nbefore i:", $i, &" exon:{p} lastx: {lastx} lastg: {lastg}"
+    when defined(debug):
+      stderr.write_line "\nbefore i:", $i, &" exon:{p} lastx: {lastx} lastg: {lastg}"
 
 
     # maxes and mins prevent going way past end of gene with huge extend value.
@@ -199,11 +199,20 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
     # insert value for missing data to interrupt plot
     if i > 0:
       let gap = min(max_gap, left - lastg)
-      stderr.write_line &"[seqcover] gap: {gap}"
-      lastx += gap
-      stderr.write_line &"<adding> gap at {lastg} (x:{lastx})"
+      when defined(debug):
+        stderr.write_line &"[seqcover] gap: {gap}"
+      if gap > 0:
+        result.x.add(lastx-1)
+        result.g.add(lastg-1)
+        lastx += gap
+        for sample, dp in dps.mpairs:
+          result.depths[sample].add(int32.low)
 
-    stderr.write_line "i:", $i, &"exon:{p}", &" <adding> {left} ..< {right}"
+      when defined(debug):
+        stderr.write_line &"<adding> gap at {lastg} (x:{lastx})"
+
+    when defined(debug):
+      stderr.write_line "i:", $i, &"exon:{p}", &" <adding> {left} ..< {right}"
     result.g.add(toSeq(left..<right))
     result.x.add(toSeq((lastx..<(lastx + size))))
 
