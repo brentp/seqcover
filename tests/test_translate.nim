@@ -1,11 +1,14 @@
 import unittest
+import json
+import tables
 import seqcoverpkg/transcript
 import seqcoverpkg/utils
 
-var extend = 100
+var extend = 10
 var max_gap = 100
 
 suite "translate suite":
+  #[
   test "bug case":
     var u = Transcript(cdsstart: 21505, cdsend: 31930, chr: "X", position: @[[19450, 21772], [24664, 24871], [25019, 25152]], strand: -1, transcript: "union", txstart: 19450, txend: 35554)
     var t = Transcript(cdsstart: 21505, cdsend: 31930, chr: "X", position: @[[19450, 21772], [24664, 24871], [25019, 25152]], strand: -1, transcript: "NM_002641", txstart: 19450, txend: 35554)
@@ -61,7 +64,19 @@ suite "translate suite":
         var l = ut.position[i-1]
         var r = e
         check r[0] - l[1] == min(2 * extend + max_gap, u.position[i][0] - u.position[i - 1][1])
+  ]#
 
-    echo "ut:", ut
+  test "translation matches depth coords":
+    var u = Transcript(cdsstart: 9551, cdsend: 26688, chr: "20", position: @[[8675, 9033], [9497, 9617], [13168, 13226], [13257, 13383], [13984, 14058], [15280, 15312], [18516, 18632]], strand: 1, transcript: "union", txstart: 8675, txend: 27449)
+    var ut = u.translate(u, extend.uint32, max_gap.uint32)
+
+    var g = Gene(transcripts: @[u])
+
+    stderr.write_line u
+    stderr.write_line ut
+    var t = newTable[string, D4]()
+    #var gpt = ut.exon_plot_coords(t, extend.uint32, max_gap.uint32)
+    var gpt = @[g.plot_data(t, extend.uint32, max_gap.uint32)]
+    echo $(%gpt)
 
 

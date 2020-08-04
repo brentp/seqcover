@@ -28,11 +28,6 @@ proc `$`*(t:Transcript): string =
   result = &"Transcript{system.`$`(t)}"
 
 
-proc UTR_left(t:Transcript): array[2, int] {.inline.} =
-  result = [t.txstart, t.cdsstart]
-
-proc UTR_right(t:Transcript): array[2, int] {.inline.} =
-  result = [t.cdsend, t.txend]
 
 type Gene* = object
   symbol*: string
@@ -134,12 +129,14 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32): Tran
 
   # todo: this in n^2 (but n is small. iterate over uexons first and calc offsets once)?
   for i, o_exon in o.position:
-    let u_off = left + u.find_offset(o_exon[0], extend.int, max_gap.int)
+    let l_off = left + u.find_offset(o_exon[0], extend.int, max_gap.int)
+    let r_off = left + u.find_offset(o_exon[1], extend.int, max_gap.int)
+    doAssert r_off - l_off == o_exon[1] - o_exon[0]
 
-    result.position.add([u_off, u_off + (o_exon[1] - o_exon[0])])
+    result.position.add([l_off, r_off])
 
   result.cdsend = left + u.find_offset(o.cdsend, extend.int, max_gap.int)
-  result.txend = left + u.find_offset(o.txend, extend.int, max_gap.int) 
+  result.txend = left + u.find_offset(o.txend, extend.int, max_gap.int)
 
 
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
@@ -158,42 +155,42 @@ proc get_chrom(chrom:string, dp:D4): string =
 proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
-  ## introns. g: is the actual coordinates.
+  ## introns. g: is the actual genomic coordinates.
   var chrom = tr.`chr`
   var dp: D4
   for k, v in dps:
     dp = v
     break
-  if dps.len > 0: chrom = chrom.get_chrom(dp)
+  if dps != nil and dps.len > 0: chrom = chrom.get_chrom(dp)
   let left = max(0, tr.txstart - min(1000, extend.int))
 
   result.depths = newTable[string, seq[int32]]()
 
-  var  lutr = tr.UTR_left
-  lutr[0] = max(0, lutr[0] - min(1000, extend.int))
-  var rutr = tr.UTR_right
-  rutr[1] += min(1000, extend.int)
+  var right = tr.cdsstart.int
 
+  var stop = tr.txend + min(1000, extend.int)
+
+  stderr.write_line &"[seqcover] {tr} {extend} {max_gap}"
   if utrs:
-    result.g = toSeq(lutr[0].uint32 ..< lutr[1].uint32)
+    result.g = toSeq(left.uint32 ..< right.uint32)
     result.x = toSeq(0'u32 ..< result.g.len.uint32)
+    stderr.write_line &"utr: <adding> {result.g[0]} ..< {result.g[^1]}"
     for sample, dp in dps.mpairs:
         result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
 
   var lastx:uint32
   var lastg:uint32
-  # gap should be min(100, position[i+1][0] - positoin[i][1])
-  stderr.write_line &"[seqcover] {tr} {extend} {max_gap}"
 
   for i, p in tr.position:
 
     lastx = result.x[^1] + 1
     lastg = result.g[^1] + 1
+    stderr.write_line "\nbefore i:", $i, &" exon:{p} lastx: {lastx} lastg: {lastg}"
 
 
     # maxes and mins prevent going way past end of gene with huge extend value.
     let left = max(lastg, p[0].uint32 - (if i == 0: 0'u32 else: min(p[0].uint32, extend)))
-    let right = min(rutr[1].uint32, max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend)))
+    let right = min(stop.uint32, max(left, p[1].uint32 + (if i == tr.position.high: 0'u32 else: extend)))
 
     let isize = right.int - left.int
     if isize <= 0: continue
@@ -202,15 +199,11 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
     # insert value for missing data to interrupt plot
     if i > 0:
       let gap = min(max_gap, left - lastg)
-      if gap > 0:
-        lastx += gap
-        result.x.add(lastx)
-        # use real value so g is sorted.
-        result.g.add(lastg)
-        for sample, dp in dps.mpairs:
-          result.depths[sample].add(int32.low)
+      stderr.write_line &"[seqcover] gap: {gap}"
+      lastx += gap
+      stderr.write_line &"<adding> gap at {lastg} (x:{lastx})"
 
-    stderr.write_line "i:", $i, &"exon:{p}", " left:", $left, " right:",  $right
+    stderr.write_line "i:", $i, &"exon:{p}", &" <adding> {left} ..< {right}"
     result.g.add(toSeq(left..<right))
     result.x.add(toSeq((lastx..<(lastx + size))))
 
@@ -220,8 +213,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
   if utrs:
     lastx = result.x[^1] + 1
     lastg = result.g[^1] + 1
-    let left = max(lastg, rutr[0].uint32)
-    let right = max(left, rutr[1].uint32) # already added extend to rutr
+    let left = max(lastg, tr.cdsend.uint32)
+    let right = max(left, stop.uint32) # already added extend to stop
     let size = right - left
     if size > 0:
       result.g.add(toSeq(left..<right))
