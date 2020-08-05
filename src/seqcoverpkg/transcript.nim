@@ -89,6 +89,8 @@ proc union*(trs:seq[Transcript]): Transcript =
 
 proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
   doAssert pos >= u.txstart and pos <= u.txend, &"error can't translate position {pos} outside of unioned transcript ({u.txstart}, {u.txend})"
+  if pos < u.position[0][0]:
+    return pos - u.txstart
 
   result = u.position[0][0] - u.txstart
 
@@ -108,6 +110,9 @@ proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
       # exon contains current position
       result += (pos - exon[0])
       break
+
+  if pos > u.position[^1][1]:
+    result += pos - u.position[^1][1]
 
 
 proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32): Transcript =
