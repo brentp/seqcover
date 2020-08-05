@@ -386,7 +386,7 @@
         };
 
         return ({ "shapes": shapes, "strand_annotation": strandArray, "trace": trace })
-        return (traces);
+        // return (traces);
 
     };
 
@@ -1044,7 +1044,7 @@
 
         //Redraw per base depth plot
         //Index of plot in plot_data and gene data
-        var plotIndex = region_index_map[currentRegion];
+        var plotIndex = parseInt($('#region-select').find(':selected')[0].value)
         var selectedGene = plot_data[plotIndex];
 
         //Plot per base depths
@@ -1060,7 +1060,7 @@
 
         //Redraw per base depth plot
         //Index of plot in plot_data and gene data
-        var plotIndex = region_index_map[currentRegion];
+        var plotIndex = parseInt($('#region-select').find(':selected')[0].value)
         var selectedGene = plot_data[plotIndex];
 
         //Plot per base depths
@@ -1086,7 +1086,7 @@
 
         //Redraw per base depth plot
         //Index of plot in plot_data and gene data
-        var plotIndex = region_index_map[currentRegion];
+        var plotIndex = parseInt($('#region-select').find(':selected')[0].value)
         var selectedGene = plot_data[plotIndex];
 
         //Plot per base depths
