@@ -205,8 +205,10 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
         result.x.add(lastx-1)
         result.g.add(lastg-1)
         lastx += gap
+        result.x.add(lastx-1)
+        result.g.add(lastg-1)
         for sample, dp in dps.mpairs:
-          result.depths[sample].add(int32.low)
+          result.depths[sample].add(@[int32.low, int32.low])
 
       when defined(debug):
         stderr.write_line &"<adding> gap at {lastg} (x:{lastx})"
