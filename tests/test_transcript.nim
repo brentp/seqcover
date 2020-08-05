@@ -9,14 +9,13 @@ suite "transcript suite":
 
     #exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10): tuple[x:seq[uint32], depths: TableRef[string, seq[int32]], g: seq[uint32]] =
     var tr = Transcript(txStart: 10, txEnd: 100, cdsStart: 15, cdsEnd: 95, position: @[[15, 25], [85, 91]])
-    echo "UTR5:", tr.UTR5
-    echo "UTR3:", tr.UTR3
     var dps = newTable[string, D4]()
-    var res = tr.exon_plot_coords(dps, 10)
+    var res = tr.exon_plot_coords(dps, 10, 10)
     check res.x.len == res.g.len
     for name, depth in res.depths.pairs:
       check res.x.len == depth.len
 
+    #[
 
   test "generate data":
     var trs = @[Transcript(cdsstart: 15321505, cdsend: 15331930, chr: "X", position: @[[15319450, 15321772], [15324664, 15324871], [15325019, 15325152], [15325913, 15326046], [15331215, 15331992], [15335500, 15335554]], strand: -1, transcript: "union", txstart: 15319450, txend: 15335554),
@@ -37,23 +36,24 @@ suite "transcript suite":
       for p in t.position:
         n += p[1] - p[0]
       stderr.write_line "size:", $n
-      coords.add(t.exon_plot_coords(d4s, 10))
-    echo ((%coords))
+      coords.add(t.exon_plot_coords(d4s, 10, 100))
+      ]#
 
 
   test "translate":
 
     var u = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
-    var o = Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
+    var o = u #Transcript(txstart:55, cdsstart:85, position: @[[85, 96], [122, 137]], cdsend: 137, txend: 152)
 
-    var t = u.translate(o, 10)
-    check t.position == @[[40, 51], [71, 86]]
+
+    var t = u.translate(o, 10, 100)
+    check t.position == @[[40, 51], [77, 92]]
+
     check t.txstart == 10
-    check t.txend == 101
+    check t.txend == 107
 
     o = Transcript(txstart:55, cdsstart:85, position: @[[89, 94], [132, 137]], cdsend: 137, txend: 152)
-    t = u.translate(o, 10)
-    check t.position ==  @[[44, 49], [81, 86]]
+    t = u.translate(o, 10, 100)
+    check t.position ==   @[[44, 49], [87, 92]]
     check t.txstart == 10
-    check t.txend == 101
-    #echo cast[seq[byte]](coords[0].g)
+    check t.txend == 107
