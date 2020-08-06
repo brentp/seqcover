@@ -1,1 +1,1 @@
-[![Build Status](https://github.com/brentp/seqcover/workflows/ci/badge.svg?branch=simplify)](https://github.com/brentp/seqcover/actions)
+[![Build Status](https://github.com/brentp/seqcover/workflows/tests/badge.svg?branch=simplify)](https://github.com/brentp/seqcover/actions)

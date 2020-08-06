@@ -36,7 +36,7 @@ class Feature {
   }
 
 
-  shape(xs, gs) {
+  hoverinfo(xs, gs) {
       // xs is plot coordinates, gs is genome coordinates
       // get genomic coordinate by finding index of plot-coord
       // and then looking it up in genomic array
@@ -117,6 +117,6 @@ if(require.main === module) {
     let data = require("./test/data.js")
     let tr = new Transcript(data.tr_data)
 
-    tr.parts().forEach(p => console.log(p.shape(data.xs, data.gs)))
+    tr.parts().forEach(p => console.log(p.hoverinfo(data.xs, data.gs)))
 
 }
