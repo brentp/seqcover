@@ -109,15 +109,14 @@ class Transcript {
     }
 }
 
+exports.Transcript = Transcript
+exports.FeatureType = FeatureType
+
 if(require.main === module) {
-    var tr_data = {"cdsstart":2065,"cdsend":3986,"chr":"X","position":[[10,2332],[2402,2609],[2679,2812],[2882,3015],[3085,3862],[3932,3986]],"strand":-1,"transcript":"union","txstart":10,"txend":3986}
-    var tr = new Transcript(tr_data)
-
     // xs and gs data for testing.
-    let data = require("./data.js")
+    let data = require("./test/data.js")
+    let tr = new Transcript(data.tr_data)
 
-    var tr = new Transcript(tr_data)
-    console.log(tr.cdsstart)
     tr.parts().forEach(p => console.log(p.shape(data.xs, data.gs)))
 
 }
