@@ -518,94 +518,6 @@
 
 
     //Get the traces for each sample depth distribution
-    function get_depth_distribution_traces(gene) {
-
-        let traces = []
-        let group_min_dp = 1000
-        let group_max_dp = -1
-
-        // Iterate through each samples depths
-        for (sample in gene.plot_coords.depths) {
-
-            // Sample depths
-            let dp = gene.plot_coords.depths[sample]
-
-            //Get local min and max depths
-            let dp_min = 1000
-            let dp_max = -1
-            for (depth of dp) {
-
-                //Skip null depths
-                if (depth < 0) { continue };
-
-                //Update local min and max
-                if (depth < dp_min) { dp_min = depth }
-                if (depth > dp_max) { dp_max = depth }
-
-            };
-
-            //Update group min and max
-            if (dp_min < group_min_dp) { group_min_dp = dp_min }
-            if (dp_max > group_max_dp) { group_max_dp = dp_max }
-
-            // X and Y values
-            let x_values = pv.range(dp_min, dp_max + 1)
-            let y_values = new Array(x_values.length).fill(0)
-
-            // Add y values based on depth value
-            for (depth of dp) {
-
-                //Skip null depths
-                if (depth < 0) { continue };
-
-                //Increment depth at depth index
-                y_values[(depth - dp_min)] += 1
-            };
-
-            //Create trace
-            let trace = {
-                x: x_values, y: y_values, mode: "lines",
-                name: sample, line: { width: 1 },
-                hovertemplate: "<b>Depth</b>:%{x}<br><b>Count</b>:%{y}"
-            }
-
-            traces.push(trace)
-        };
-
-        return ({ "traces": traces, "min": group_min_dp, "max": group_max_dp })
-
-    };
-
-
-    //Get the depth distribution layout
-    function get_depth_distribution_layout(xaxis_min = 0, xaxis_max = 100) {
-
-        var layout = {
-            autosize: true,
-            title: "Depth Distribution per Sample",
-            xaxis: {
-                title: "Depth",
-                range: [xaxis_min, xaxis_max]
-            },
-            yaxis: {
-                title: "Count",
-                domain: [0.0, 0.9],
-            },
-            hovermode: 'closest',
-            showlegend: true,
-            legend: {
-                xanchor: "right",
-                yanchor: "top",
-                y: 1,
-                x: 1,
-                orientation: "h",
-                borderwidth: 1,
-                bordercolor: '#eeeeee'
-            },
-        };
-        return (layout)
-    };
-
 
     /*
     ------------------------------------------------------------------------------------------------------------------
@@ -661,48 +573,6 @@
     };
 
 
-    //Add a jQuery data table with descriptive stats
-    function plot_stats_table(gene) {
-
-        //Remove previous data table if it exists
-        if ($.fn.DataTable.isDataTable('#stats_table')) {
-            let table = $('#stats_table').DataTable()
-            table.destroy();
-        };
-
-        //Get row data and column names
-        rows_and_columns = get_stats_table(gene)
-
-        //Create data table
-        jQuery("#stats_table").DataTable({
-            destory: true,
-            data: rows_and_columns["rowData"],
-            columns: rows_and_columns["colNames"],
-            paging: true,
-            scroller: true,
-            scrollY: '400',
-            scrollX: true,
-            scrollCollapse: true,
-        });
-
-    };
-
-
-    //Depth Distribution plot using per depth count
-    function plot_depth_distribution(gene) {
-
-        //Get depth distribution plot trace per sample
-        var depth_map = get_depth_distribution_traces(gene)
-
-        //Get the plot layout for the depth plot
-        var depth_dist_layout = get_depth_distribution_layout(depth_map.min - 5, depth_map.max + 5)
-
-        Plotly.newPlot("depth_dist_plot", depth_map.traces, depth_dist_layout)
-
-    };
-
-
-
     /*
     ------------------------------------------------------------------------------------------------------------------
                                                      Event Handling
@@ -716,12 +586,6 @@
 
         //Plot per base depths
         plot_per_base_depth(selected_gene)
-
-        //Add a descriptive statistics table
-        plot_stats_table(selected_gene)
-
-        //Plot depth distribution distrubtion
-        plot_depth_distribution(selected_gene)
 
     };
 
