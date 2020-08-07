@@ -19,9 +19,10 @@ function binary_search(A, v) {
 
 // enum
 const FeatureType = Object.freeze({
-    EXON:   Symbol("exon"),
-    CDS:  Symbol("CDS"),
-    UTR: Symbol("UTR")
+    EXON: "exon",
+    CDS:  "CDS",
+    UTR: "UTR",
+    TRANSCRIPT: "transcript"
 })
 
 const aesthetics = {
@@ -115,6 +116,32 @@ class Transcript {
         result.push(new Feature(this.data.cdsend, this.data.txend, FeatureType.UTR, that))
         return result.filter(f => f.stop - f.start > 0)
 
+    }
+
+    overlaps(position) {
+        // return parts() that overlap with this position
+        let that = this
+        var result = []
+        if(position < this.txstart || position > this.txend) { return result}
+        if(position < this.cdsstart) { result.push(new Feature(this.data.txstart, this.data.cdsstart, FeatureType.UTR, that)) }
+        this.data.position.forEach((exon, i) => {
+            if (exon[0] > position || exon[1] < position) {
+                return 
+            }
+            result.push(new Feature(exon[0], exon[1], FeatureType.EXON, that))
+            if(exon[1] < that.data.cdsstart || exon[0] > that.data.cdsend) {
+                // continue
+            } else {
+                var f = new Feature(Math.max(this.data.cdsstart, exon[0]), Math.min(this.data.cdsend, exon[1]), FeatureType.CDS, that)
+                if(f.stop - f.start > 0){
+                    result.push(f)
+                }
+            }
+        })
+        if(position >= this.cdsend) {
+            result.push(new Feature(this.data.cdsend, this.data.txend, FeatureType.UTR, that))
+        }
+        return result;
     }
 
     traces(y_offset, xs, gs) {
