@@ -40,10 +40,11 @@ describe('Transcript', function () {
 
       });
       it('traces should work', function () {
-          let traces = tr.traces(0)
+          let traces = tr.traces(0, data.xs, data.gs)
           assert.equal(traces.length, 3)
           assert.equal(traces[0].x.length, 2, "only need start and end")
           assert.equal(traces[0].y[0], 0, "y offset should be 0")
+          assert.equal(traces[0].genome_x.length, 2, "only need start and end")
 
           assert.equal(traces[0].name, tr.name)
 

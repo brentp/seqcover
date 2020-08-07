@@ -117,7 +117,12 @@ class Transcript {
 
     }
 
-    traces(y_offset) {
+    traces(y_offset, xs, gs) {
+
+        function get_genomic_coord(x) {
+            if(isNaN(x)){ return NaN }
+            return gs[binary_search(xs, x)]
+        }
 
         var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
              type: "scatter", mode: "lines", showlegend: false,
@@ -149,7 +154,11 @@ class Transcript {
             cds_trace.y.push(y_offset, y_offset)
         })
 
-        return [transcript_trace, exon_trace, cds_trace]
+        var result = [transcript_trace, exon_trace, cds_trace]
+        result.forEach(trace =>  {
+            trace.genome_x = trace.x.map(x => get_genomic_coord(x))
+        })
+        return result
 
     }
 }

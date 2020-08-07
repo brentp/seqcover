@@ -39,7 +39,7 @@
             },
             yaxis2: {
                 title: "Merged<br>Transcripts",
-                range: [0, 2],
+                range: [0.5, -0.5],
                 showlegend: false,
                 zeroline: false,
                 showticklabels: false,
@@ -48,7 +48,8 @@
 
             },
 
-            hovermode: 'closest',
+            hovermode: 'x unified',
+            hoverdistance: 100000,
             showlegend: false,
             legend: {
                 xanchor: "right",
@@ -360,9 +361,11 @@
     //Get the transcript shapes for the current region
     function get_transcript_traces(gene, transcripts, plotRef) {
         var traces = []
+        // use negative values for y_offset so we can tell from y-value if we
+        // are in depth plot (which must be positive) or in transcript plot
 
         transcripts.forEach((transcript, y_offset) => {
-            var trs = transcript.traces(y_offset + 1)
+            var trs = transcript.traces(-(y_offset), gene.plot_coords.x, gene.plot_coords.g)
             trs.forEach(t => {
                 t.yaxis = plotRef
                 traces.push(t)
@@ -372,7 +375,6 @@
     };
 
 
-    //Per base depth plot with transcript annotations
     function plot_per_base_depth(gene) {
 
         gene_layout = get_gene_plot_layout(gene)
@@ -382,18 +384,57 @@
         var unioned_transcript_traces = get_transcript_traces(gene, [gene.unioned_transcript], "y2")
         unioned_transcript_traces.forEach(t => depth_traces.push(t))
 
-        //If show transcripts is turned on, show the transcript plot
         if (showTranscripts) {
           var transcript_traces = get_transcript_traces(gene, gene.transcripts, "y3")
           transcript_traces.forEach(t => depth_traces.push(t))
-          gene_layout.yaxis3.range = [0, 1 + transcript_traces.length / 3]
+          gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
 
         };
 
-        //Plot by base depth
         Plotly.newPlot("gene_plot", depth_traces, gene_layout)
 
+        var d = document.getElementById("gene_plot")
+        var hoverInfo = document.getElementById("hoverInfo")
+        d.on("plotly_hover", data => {
+            handle_hover(data, depth_traces, gene)
+        }).on("plotly_unhover", data => hoverInfo.innerHTML = "");
+
     };
+
+    function handle_hover(data, depth_traces, gene) {
+        // don't handle hover in depth plot
+        let ax = data.yaxes[0]._attr;
+        if(ax == "yaxis") {return; }
+        var x = Math.round(data.xvals[0])
+        var y = Math.round(Math.abs(data.yvals[0])) // can now use this as an index to get the transcript.
+        var transcript = ax == "yaxis2" ? gene.unioned_transcript : gene.transcripts[y]
+        if(transcript == undefined) {return}
+        console.log(x, transcript)
+
+        let overlaps = transcript.parts().filter(p => {
+            //console.log(x, p, p.start <= x, p.stop >= x)
+            return p.start <= x && p.stop >= x
+        })
+        if(overlaps.length > 1) {
+            overlaps = overlaps.filter(p => p.type == FeatureType.CDS)
+        }
+        if(overlaps.length == 0){
+            overlaps.push(new Feature(transcript.txstart, transcript.txstop))
+        }
+
+        var start_idx = binary_search(gene.plot_coords.x, overlaps[0].start)
+        var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
+
+        var means = {}
+        hoverInfo.innerHTML = ""
+        for(var sample in gene.plot_coords.depths) {
+            let depths = gene.plot_coords.depths[sample];
+            means[sample] = math.mean(depths.slice(start_idx, stop_idx))
+            hoverInfo.innerHTML += `<b>${sample}</b> mean depth for ${overlaps[0].FeatureType}: ${means[sample]}<br>`
+        }
+
+
+    }
 
 
     /*
