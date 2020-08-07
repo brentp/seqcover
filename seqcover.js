@@ -48,7 +48,7 @@
 
             },
 
-            hovermode: 'x unified',
+            hovermode: 'closest',
             hoverdistance: 100000,
             showlegend: false,
             legend: {
@@ -387,6 +387,7 @@
         if (showTranscripts) {
           var transcript_traces = get_transcript_traces(gene, gene.transcripts, "y3")
           transcript_traces.forEach(t => depth_traces.push(t))
+          // each transcript is centered on the negative integers.
           gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
 
         };
@@ -398,12 +399,14 @@
         d.on("plotly_hover", data => {
             handle_hover(data, depth_traces, gene, gene_layout)
             Plotly.react("gene_plot", depth_traces, gene_layout)
+            data.event.stopPropagation()
         }).on("plotly_unhover", data => {
             hoverInfo.innerHTML = ""
             if(gene_layout.shapes != undefined && gene_layout.shapes.length > 0) {
                 gene_layout.shapes.pop()
             }
             Plotly.react("gene_plot", depth_traces, gene_layout)
+            data.event.stopPropagation()
         });
 
     };
@@ -419,7 +422,6 @@
             }
 
         }
-        console.log("result:", result, " n:", n)
 
         return result / n
     }
@@ -432,12 +434,12 @@
         //
         let ax = data.yaxes[0]._attr;
         // don't handle hover in depth plot
-        if(ax == "yaxis") {return; }
+        if(ax == "yaxis") {return false; }
+        // this is the x in plot coordinates.
         var x = Math.round(data.xvals[0])
         var y = Math.round(Math.abs(data.yvals[0])) // can now use this as an index to get the transcript.
         var transcript = ax == "yaxis2" ? gene.unioned_transcript : gene.transcripts[y]
-        if(transcript == undefined) {return}
-        console.log(x, transcript)
+        if(transcript == undefined) {return false}
 
         let overlaps = transcript.overlaps(x)
         if(overlaps.length > 1) {
@@ -450,7 +452,6 @@
         if(overlaps.length == 0){
             overlaps.push(new Feature(transcript.txstart, transcript.txend, FeatureType.TRANSCRIPT ))
         }
-        console.log("overlaps:", overlaps, gene)
         if(gene_layout.shapes == undefined) {gene_layout.shapes = []}
         gene_layout.shapes.push({
             type: "rect",
@@ -466,19 +467,21 @@
 
         var start_idx = binary_search(gene.plot_coords.x, overlaps[0].start)
         var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
-        console.log("idxs:", start_idx, stop_idx, overlaps[0].stop, gene.plot_coords.x)
+
+        var gstart = gene.plot_coords.g[start_idx]
+        var gstop = gene.plot_coords.g[stop_idx]
 
         var means = {}
-        hoverInfo.innerHTML = ""
+        hoverInfo.innerHTML = `${gene.unioned_transcript.chr}:${gstart}-${gstop}<br><ul>`
         for(var sample in gene.plot_coords.depths) {
             let depths = gene.plot_coords.depths[sample];
-            means[sample] = mean(depths.slice(start_idx, stop_idx))
-            hoverInfo.innerHTML += `<b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br>`
+            means[sample] = mean(depths.slice(start_idx, stop_idx)).toPrecision(4)
+            hoverInfo.innerHTML += `<li><b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br></li>`
         }
+        hoverInfo.innerHTML += "</ul>"
 
 
     }
-
 
     /*
     ------------------------------------------------------------------------------------------------------------------
@@ -505,7 +508,6 @@
     jQuery(document).ready(function () {
         let regions = []
         for (const [i, pd] of plot_data.entries()) {
-            console.log('%d: %s', i, pd)
             let region = `${pd.symbol} ${pd.unioned_transcript.chr}:${pd.plot_coords.g[0]}-${pd.plot_coords.g[pd.plot_coords.g.length - 1]}`
             regions.push({ "id": i, "text": region })
         }
