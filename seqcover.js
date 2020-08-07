@@ -6,7 +6,7 @@
     var currentRegion = "";
     var nonCdsChecked = false;
     var utrsChecked = false;
-    var showTranscripts = false;
+    var showTranscripts = true;
 
     /*
     ------------------------------------------------------------------------------------------------------------------
@@ -22,6 +22,7 @@
         var layout = {
             grid: {
                 rows: 3,
+                columns: 1,
             },
             autosize: true,
             height: gene_plot_height,
@@ -62,18 +63,15 @@
 
         //Add the 3rd layout if show transcripts is on
         if (showTranscripts) {
-
-            //Update yaxis domains
             layout.yaxis.domain = [0.55, 0.90]
             layout.yaxis2.domain = [0.4, 0.55]
-
-            //Add 3rd axis
-            layout["yaxis3"] = {
+             layout["yaxis3"] = {
                 range: [0, 2],
                 zeroline: false,
                 showlegend: false,
                 domain: [0.0, 0.40]
             }
+
         };
 
         return (layout)
@@ -82,7 +80,7 @@
 
 
     //Get a by position trace per sample of depth
-    function get_by_position_depth_trace(gene) {
+    function get_depth_trace(gene) {
 
         var traces = [];
 
@@ -360,215 +358,40 @@
 
 
     //Get the transcript shapes for the current region
-    function get_transcript_shapes(gene, transcripts, plotRef) {
+    function get_transcript_traces(gene, transcripts, plotRef) {
+        var traces = []
 
-        let symbol = gene.symbol
-        let top = 2;
-        let bottom = 0;
-        let exonOffset = 0.25;
-        let utrOffset = 0.1;
-        let shapes = [];
-        let tick_labels = [];
-        let tick_vals = [];
-        let strandArray = [];
-        let x_values = []
-        let y_values = []
-        let customData = []
-        let text_symbol = []
-
-        for (transcript of transcripts) {
-
-            //Sort exon positions
-            exon_2d_array = transcript.position.sort(function (a, b) { return a[0] - b[0] })
-
-            //Count cds exons
-            let cdsExonCount = 0
-            for (index in exon_2d_array) {
-
-                let exonPos = transcript.position[index]
-
-                if (exonPos[1] > transcript.cdsstart & exonPos[0] < transcript.cdsend) { cdsExonCount += 1 };
-
-            };
-
-            //If neither UTRs or non-CDS Exons are being shown, and the CDS Exon Count is 0, skip this transcript.
-            if (utrsChecked | nonCdsChecked | cdsExonCount > 0) {
-
-                // Transcript
-                shapes.push({
-                    type: "line", x0: transcript.txstart, x1: transcript.txend,
-                    y0: bottom + 1, y1: bottom + 1, line_color: "black", yref: plotRef
-                })
-
-                //Get strand annotation info
-                let max_index = transcript.position.length - 1
-                let strandMarker = transcript.strand > 0 ? ">" : "<";
-                let markerOffset = showTranscripts ? 0.01 : 0.02;
-                for (index in transcript.position) {
-
-                    //Get strand annotation text
-                    if (parseInt(index) == max_index) { break };
-
-                    //Get start and end exon positions
-                    let startPos = transcript.position[parseInt(index)][0]
-                    let endPos = transcript.position[parseInt(index)][1]
-                    let nextStartPos = transcript.position[(parseInt(index) + 1)][0]
-                    let xPos = endPos + ((nextStartPos - endPos) / 2)
-
-                    //Only add strand marker annotation to CDS region
-                    if (endPos > transcript.cdsstart & nextStartPos < transcript.cdsend) {
-                        //Add marker to strandArray
-                        strandArray.push({ x: xPos, y: bottom + (1 + markerOffset), text: strandMarker, font: { color: "black", size: 16 }, opacity: 0.7, showarrow: false, yref: plotRef })
-                    }
-                };
-
-            } else { continue };
-
-            //Get the CDS Exons
-            let cdsExonMap = getCdsExons(gene, symbol, transcript, exon_2d_array, cdsExonCount, exonOffset, (bottom + 1), customData, shapes, x_values, y_values, text_symbol, plotRef)
-
-            //Update data objects with CDS Exon info
-            customData = cdsExonMap.custData
-            shapes = cdsExonMap.shapeData
-            x_values = cdsExonMap.xValues
-            y_values = cdsExonMap.yValues
-            text_symbol = cdsExonMap.symbolArray
-
-            //If UTR checkbox is true, add UTRs
-            if (utrsChecked) {
-
-                //Get UTR shapes
-                let utrMap = getUTRInfo(gene, symbol, transcript, utrOffset, (bottom + 1), customData, shapes, x_values, y_values, text_symbol, plotRef)
-
-                //Update data objects with UTR info
-                customData = utrMap.custData
-                shapes = utrMap.shapeData
-                x_values = utrMap.xValues
-                y_values = utrMap.yValues
-                text_symbol = utrMap.symbolArray
-
-            };
-
-            //Add non CDS exons if checked
-            if (nonCdsChecked) {
-
-                //Get Non-CDS Exon Shapes
-                let nonCdsExonMap = getNonCdsExons(gene, symbol, transcript, exon_2d_array, exonOffset, (bottom + 1), customData, shapes, x_values, y_values, text_symbol, plotRef)
-
-                //Update data objects with CDS Exon info
-                customData = nonCdsExonMap.custData
-                shapes = nonCdsExonMap.shapeData
-                x_values = nonCdsExonMap.xValues
-                y_values = nonCdsExonMap.yValues
-                text_symbol = nonCdsExonMap.symbolArray
-            };
-
-            //Get tick labels
-            tick_labels.push(transcript.transcript)
-            tick_vals.push(bottom + 1)
-
-            //update bottom
-            bottom = bottom - 1
-        };
-
-        //Add a trace for the hover info
-        let trace = {
-            x: x_values, y: y_values, text: text_symbol,
-            type: 'scatter', mode: 'markers', customdata: customData, name: "Transcripts",
-            opacity: 0.0, showlegend: false, yaxis: plotRef, marker: { color: "darkcyan", size: 15 },
-            hovertemplate: '<b>Gene</b>: %{text}<br><b>Transcript ID</b>: %{customdata.tx_id}<br><b>Strand</b>: %{customdata.strand}<br><b>Feature</b>: %{customdata.Feature}<br><b>Start Position</b>: %{customdata.exon_start}<br><b>End Position</b>: %{customdata.exon_end}<br><b>Coding Region</b>: %{customdata.CDS}<br><b>CDS Exon Number</b>: %{customdata.exon_count}<br>',
-        };
-
-        return ({ "shapes": shapes, "top": top, "bottom": bottom, "tick_labels": tick_labels, "tick_vals": tick_vals, "strand_annotation": strandArray, "trace": trace })
+        transcripts.forEach((transcript, y_offset) => {
+            var trs = transcript.traces(y_offset + 1)
+            trs.forEach(t => {
+                t.yaxis = plotRef
+                traces.push(t)
+            })
+        })
+        return traces
     };
 
-
-    //Get descriptive stats info for stats table
-    function get_stats_table(gene, low_depth = 10) {
-
-        var dataRows = []
-        var columnNames = [
-            { "title": "Sample" },
-            { "title": "Mean Depth" },
-            { "title": "Median Depth" },
-            { "title": "STD" },
-            { "title": "Min Depth" },
-            { "title": "Max Depth" },
-            { "title": "Low Coverage Sites (<=" + low_depth + ")" }
-        ]
-
-        for (sample in gene.plot_coords.depths) {
-
-            // Depths
-            let dp = gene.plot_coords.depths[sample]
-            dp = dp.filter(value => value > -1000);
-
-            //Get depth descriptive statistics
-            let dp_min = Math.min(...dp)
-            let dp_max = Math.max(...dp)
-            let dp_mean = math.round(math.mean(dp), 3)
-            let dp_median = math.median(dp)
-            let dp_std = math.round(math.std(dp), 3)
-            let dp_low = math.sum(dp.map(function (v) { return v <= low_depth ? 1 : 0 }))
-
-            dataRows.push([sample, dp_mean, dp_median, dp_std, dp_min, dp_max, dp_low])
-        };
-        return ({ rowData: dataRows, colNames: columnNames })
-    };
-
-
-    //Get the traces for each sample depth distribution
-
-    /*
-    ------------------------------------------------------------------------------------------------------------------
-                                                     Plot Controllers
-    ------------------------------------------------------------------------------------------------------------------
-    */
 
     //Per base depth plot with transcript annotations
     function plot_per_base_depth(gene) {
 
-        //Get gene specific layout
-        plot_gene_layout = get_gene_plot_layout(gene)
+        gene_layout = get_gene_plot_layout(gene)
 
-        //Get gene specific depth traces
-        by_position_depth_traces = get_by_position_depth_trace(gene)
+        var depth_traces = get_depth_trace(gene)
 
-        // get unionized transcript shapes
-        //unioned_transcript_shapes = get_unioned_transcript_shapes(gene)
-        unioned_transcript_shapes = get_transcript_shapes(gene, [gene.unioned_transcript], "y2")
-        by_position_depth_traces.push(unioned_transcript_shapes.trace)
+        var unioned_transcript_traces = get_transcript_traces(gene, [gene.unioned_transcript], "y2")
+        unioned_transcript_traces.forEach(t => depth_traces.push(t))
 
         //If show transcripts is turned on, show the transcript plot
         if (showTranscripts) {
-            // Get per transcript annotation shapes
-            transcript_map = get_transcript_shapes(gene, gene.transcripts, "y3")
-            by_position_depth_traces.push(transcript_map.trace)
-
-            //Add shapes to layout
-            plot_gene_layout.shapes = unioned_transcript_shapes.shapes.concat(transcript_map.shapes)
-
-            //Adjuste subplot 3 yaxis ranges based on the number of annotated  transcripts
-            plot_gene_layout.yaxis3.range = [transcript_map.bottom, transcript_map.top]
-
-            //Add subplot 3 yaxis tick labels (transcript ids)
-            plot_gene_layout.yaxis3.tickvals = transcript_map.tick_vals
-            plot_gene_layout.yaxis3.ticktext = transcript_map.tick_labels
-
-            //Add subplot 3 strand annotations
-            plot_gene_layout.annotations = transcript_map.strand_annotation.concat(unioned_transcript_shapes.strand_annotation)
-
-
-        } else {
-
-            //Add shapes to layout
-            plot_gene_layout.shapes = unioned_transcript_shapes.shapes
-            plot_gene_layout.annotations = unioned_transcript_shapes.strand_annotation
+          var transcript_traces = get_transcript_traces(gene, gene.transcripts, "y3")
+          transcript_traces.forEach(t => depth_traces.push(t))
+          gene_layout.yaxis3.range = [0, 1 + transcript_traces.length / 3]
 
         };
 
         //Plot by base depth
-        Plotly.newPlot("gene_plot", by_position_depth_traces, plot_gene_layout)
+        Plotly.newPlot("gene_plot", depth_traces, gene_layout)
 
     };
 
@@ -582,10 +405,14 @@
     // Controller function for generating gene/region specific plots
     function generate_plots(selected_region) {
 
-        let selected_gene = plot_data[selected_region]
+        var g = plot_data[selected_region]
+        if(g.unioned_transcript.constructor.name == "Object") {
+            g.unioned_transcript = new Transcript(g.unioned_transcript)
+        }
+        g.transcripts = g.transcripts.map(t => new Transcript(t))
 
         //Plot per base depths
-        plot_per_base_depth(selected_gene)
+        plot_per_base_depth(g)
 
     };
 

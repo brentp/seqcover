@@ -26,11 +26,11 @@ const FeatureType = Object.freeze({
 
 const aesthetics = {
     TRANSCRIPT_COLOR: "rgb(65, 65, 65)",
-    TRANSCRIPT_WIDTH: 15,
+    TRANSCRIPT_WIDTH: 8,
     EXON_COLOR: "rgb(105,105,105)",
-    EXON_WIDTH: 25,
+    EXON_WIDTH: 14,
     CDS_COLOR:'rgb(155, 155, 155)',
-    CDS_WIDTH: 30,
+    CDS_WIDTH: 20,
 }
 
 class Feature {
@@ -154,16 +154,23 @@ class Transcript {
     }
 }
 
-exports.Transcript = Transcript
-exports.FeatureType = FeatureType
 
-if(require.main === module) {
-    // xs and gs data for testing.
-    let data = require("./test/data.js")
-    let tr = new Transcript(data.tr_data)
+try {
+    // node.js stuff to allow testing
+    exports.Transcript = Transcript
+    exports.FeatureType = FeatureType
 
-    tr.parts().forEach(p => console.log(p.hoverinfo(data.xs, data.gs)))
 
-    console.log(tr.traces(0))
+    if(require.main === module) {
+        // xs and gs data for testing.
+        let data = require("./test/data.js")
+        let tr = new Transcript(data.tr_data)
 
+        tr.parts().forEach(p => console.log(p.hoverinfo(data.xs, data.gs)))
+
+        console.log(tr.traces(0))
+
+    }
+} catch (e) {
+    // browser
 }
