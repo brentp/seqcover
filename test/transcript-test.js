@@ -11,7 +11,7 @@ describe('Transcript', function () {
     });
   });
 
-  describe('coordinate translation/search', function () {
+  describe('transcript tests', function () {
       it('inferred genomic coords should match actual', function () {
           let parts = tr.parts()
           parts.forEach((p, i) => {
@@ -39,6 +39,15 @@ describe('Transcript', function () {
           })
 
       });
+      it('traces should work', function () {
+          let traces = tr.traces(0)
+          assert.equal(traces.length, 3)
+          assert.equal(traces[0].x.length, 2, "only need start and end")
+          assert.equal(traces[0].y[0], 0, "y offset should be 0")
+
+          assert.equal(traces[0].name, tr.name)
+
+      })
   });
 
 });

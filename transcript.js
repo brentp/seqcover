@@ -24,6 +24,15 @@ const FeatureType = Object.freeze({
     UTR: Symbol("UTR")
 })
 
+const aesthetics = {
+    TRANSCRIPT_COLOR: "rgb(65, 65, 65)",
+    TRANSCRIPT_WIDTH: 15,
+    EXON_COLOR: "rgb(105,105,105)",
+    EXON_WIDTH: 25,
+    CDS_COLOR:'rgb(155, 155, 155)',
+    CDS_WIDTH: 30,
+}
+
 class Feature {
   constructor(start, stop, type, transcript) {
       this.start = start
@@ -107,6 +116,42 @@ class Transcript {
         return result.filter(f => f.stop - f.start > 0)
 
     }
+
+    traces(y_offset) {
+
+        var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
+             type: "scatter", mode: "lines", showlegend: false,
+             line: { color: aesthetics.TRANSCRIPT_COLOR, width: aesthetics.TRANSCRIPT_WIDTH}}
+
+        let parts = this.parts()
+
+        var exon_trace = {name: this.data.transcript + " exons", x: [], y:[],
+             type: "scatter", mode: "lines", showlegend: false,
+             line: { color: aesthetics.EXON_COLOR, width: aesthetics.EXON_WIDTH}}
+        parts.filter(p => p.type == FeatureType.EXON).forEach(e => {
+            if((exon_trace.x.length) > 0) {
+                exon_trace.x.push(NaN)
+                exon_trace.y.push(y_offset)
+            }
+            exon_trace.x.push(e.start, e.stop)
+            exon_trace.y.push(y_offset, y_offset)
+        })
+
+        var cds_trace = {name: this.data.transcript + " CDS", x: [], y:[],
+             type: "scatter", mode: "lines", showlegend: false,
+             line: { color: aesthetics.CDS_COLOR, width: aesthetics.CDS_WIDTH}}
+        parts.filter(p => p.type == FeatureType.CDS).forEach(c => {
+            if((cds_trace.x.length) > 0) {
+                cds_trace.x.push(NaN)
+                cds_trace.y.push(y_offset)
+            }
+            cds_trace.x.push(c.start, c.stop)
+            cds_trace.y.push(y_offset, y_offset)
+        })
+
+        return [transcript_trace, exon_trace, cds_trace]
+
+    }
 }
 
 exports.Transcript = Transcript
@@ -118,5 +163,7 @@ if(require.main === module) {
     let tr = new Transcript(data.tr_data)
 
     tr.parts().forEach(p => console.log(p.hoverinfo(data.xs, data.gs)))
+
+    console.log(tr.traces(0))
 
 }
