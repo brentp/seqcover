@@ -32,10 +32,6 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
-    <!-- pv range calc could be easily done locally -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/protovis/3.3.1/protovis.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/7.1.0/math.min.js"></script>
-
     <script type="text/javascript"
         src="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.js"></script>
 
@@ -50,46 +46,25 @@
             font-size: .875rem;
         }
 
-        table.dataTable thead th.sorting:after,
-        table.dataTable thead th.sorting_asc:after,
-        table.dataTable thead th.sorting_desc:after,
-        table.dataTable thead th.sorting:before,
-        table.dataTable thead th.sorting_asc:before,
-        table.dataTable thead th.sorting_desc:before {
-            font-family: FontAwesome !important;
-        }
-
         .brand {
-            /* padding-top: .75rem;
-            padding-bottom: .75rem; */
             font-size: 1.5rem;
             font-family: 'Raleway', sans-serif;
         }
 
-        .med_div {
-            height: 45vh;
+        .select-title {
+            font-weight: bold;
         }
 
-        .cdsSquare {
-            height: 15px;
-            width: 30px;
-            background-color: #000000;
-
+        .select-location {
+            /* font-size: 0.9rem; */
+            font-weight: lighter;
         }
 
-        .nonCdsSquare {
-            height: 15px;
-            width: 30px;
-            border: 1px solid #000000;
-            background-color: #808080;
-            opacity: 0.25;
-        }
-
-        .utrSquare {
-            height: 10px;
-            width: 25px;
-            border: 1px solid #000000;
-            background-color: #00FFFF;
+        .select2-selection__rendered>div {
+            position: relative;
+            display: flex;
+            align-items: stretch;
+            width: 100%;
         }
     </style>
 </head>
@@ -106,14 +81,21 @@
                 </div>
                 <select class="form-control" id="region-select"></select>
                 <div class="input-group-append">
-                    <button class="btn btn-secondary" type="button"><i class="fas fa-caret-left"></i></button>
+                    <button class="btn btn-secondary" type="button" id="btn-previous" title="Previous region (&#8592;)"
+                        data-toggle="tooltip"><i class="fas fa-caret-left"></i></button>
                 </div>
                 <div class="input-group-append">
-                    <button class="btn btn-secondary" type="button"><i class="fas fa-caret-right"></i></button>
+                    <button class="btn btn-secondary" type="button" id="btn-next" title="Next region (&#8594;)"
+                        data-toggle="tooltip"><i class="fas fa-caret-right"></i></button>
+                </div>
+                <div class="input-group-append">
+                    <button class="btn btn-secondary" type="button" id="btn-copy-region" title="Copy selected region"
+                        data-toggle="tooltip"><i class="fas fa-copy"></i></button>
                 </div>
             </div>
         </div>
         <div class="col-sm-12 col-md-12 col-lg-2 d-flex align-items-center justify-content-end" id="meta-header">
+            <!-- update span `genome-build` from plot_data -->
             <div class="font-weight-light text-light">Genome build <span class="font-weight-bold"
                     id="genome-build">GRCh38</span>
             </div>
@@ -149,7 +131,7 @@
                 <p id="gene_description">Description</p>
             </div>
         </div>
-        <div class="row pb-3">
+        <!-- <div class="row pb-3">
             <div class="col-sm-3">
             </div>
             <div class="col-sm-4">
@@ -158,7 +140,7 @@
                     Show Transcripts
                 </button>
             </div>
-        </div>
+        </div> -->
     </div>
 </body>
 
