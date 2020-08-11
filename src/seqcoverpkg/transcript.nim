@@ -27,7 +27,8 @@ proc `%`*(a:array[2, int]): JsonNode =
 proc `$`*(t:Transcript): string =
   result = &"Transcript{system.`$`(t)}"
 
-
+proc coding*(t:Transcript): bool =
+  result = t.cdsstart != t.cdsend
 
 type Gene* = object
   symbol*: string
@@ -59,9 +60,9 @@ proc union*(trs:seq[Transcript]): Transcript =
 
   for t in trs:
     if t.`chr` != result.`chr`: continue
-    if t.cdsstart < result.cdsstart:
+    if t.coding and t.cdsstart < result.cdsstart:
       result.cdsstart = t.cdsstart
-    if t.cdsend > result.cdsend:
+    if t.coding and t.cdsend > result.cdsend:
       result.cdsend = t.cdsend
     if t.txstart < result.txstart:
       result.txstart = t.txstart
