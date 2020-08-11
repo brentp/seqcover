@@ -38,12 +38,14 @@ function get_gene_plot_layout(gene) {
             domain: [0.55, 1]
         },
         yaxis2: {
-            title: "Merged<br>Transcripts",
+            //title: "Merged<br>Transcripts",
+
             range: [0.5, -0.5],
             showlegend: false,
             zeroline: false,
-            showticklabels: false,
-            ticktext: gene.unioned_transcript.transcript,
+            tickvals: [0],
+            ticktext: ["Merged<br>Transcript"],
+            tickangle: 40,
             domain: [0.0, 0.3],
         },
         hovermode: 'closest',
@@ -55,12 +57,15 @@ function get_gene_plot_layout(gene) {
     if (showTranscripts) {
         layout.yaxis.domain = [0.55, 0.90]
         layout.yaxis2.domain = [0.4, 0.55]
-        layout["yaxis3"] = {
+        layout.yaxis3 = {
             range: [0, 2],
             zeroline: false,
             showlegend: false,
-            domain: [0.0, 0.40]
+            domain: [0.0, 0.40],
+            tickangle: 40,
+            ticktext: gene.transcripts.map(t => t.name),
         }
+
 
     };
 
@@ -143,6 +148,9 @@ function plot_per_base_depth(gene) {
         transcript_traces.forEach(t => depth_traces.push(t))
         // each transcript is centered on the negative integers.
         gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
+        gene_layout.yaxis3.tickvals = [...Array(gene.transcripts.length).keys()].map(f => -f)
+        gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.name)
+        console.log(gene_layout.yaxis3)
 
     };
 

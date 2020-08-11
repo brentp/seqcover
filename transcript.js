@@ -26,11 +26,11 @@ const FeatureType = Object.freeze({
 })
 
 const aesthetics = {
-    TRANSCRIPT_COLOR: "rgb(65, 65, 65)",
+    TRANSCRIPT_COLOR: "rgba(65, 65, 65, 0.6)",
     TRANSCRIPT_WIDTH: 8,
-    EXON_COLOR: "rgb(105,105,105)",
+    EXON_COLOR: "rgba(105,105,105, 0.6)",
     EXON_WIDTH: 14,
-    CDS_COLOR:'rgb(155, 155, 155)',
+    CDS_COLOR:'rgb(195, 155, 155)',
     CDS_WIDTH: 20,
 }
 
