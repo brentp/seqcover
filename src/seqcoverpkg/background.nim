@@ -107,8 +107,7 @@ proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq
 proc main() =
   let p = newParser("seqcover background"):
     option("-o", "--output-dir", help="directory for output", default="seqcover-backgrounds")
-    arg("samples", nargs= -1, help="d4 files or a glob of d4 files to generate background")
-
+    arg("samples", nargs= -1, help="per-base bed.gz files or d4 files or a glob of either to generate background")
 
   let percentiles = @[5, 10, 50, 90, 95]
   var argv = commandLineParams()

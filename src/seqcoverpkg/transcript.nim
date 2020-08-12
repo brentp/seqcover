@@ -41,6 +41,7 @@ proc `$`*(g:Gene): string =
 type plot_coords* = object
   x*: seq[uint32]
   depths*: TableRef[string, seq[int32]]
+  background_depths*: TableRef[string, seq[int32]]
   g*: seq[uint32]
 
 type GenePlotData* = object
@@ -158,10 +159,13 @@ proc get_chrom(chrom:string, dp:D4): string =
   else:
     raise newException(KeyError, "chromosome not found:" & chrom)
 
-proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): plot_coords =
+proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], backgrounds:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
   ## introns. g: is the actual genomic coordinates.
+  var backgrounds = backgrounds
+  if backgrounds == nil:
+    backgrounds = newTable[string, D4]()
   var chrom = tr.`chr`
   var dp: D4
   for k, v in dps:
@@ -171,6 +175,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
   let left = max(0, tr.txstart - min(1000, extend.int))
 
   result.depths = newTable[string, seq[int32]]()
+  result.background_depths = newTable[string, seq[int32]]()
 
   var right = tr.position[0][0].int
   var stop = tr.txend + min(1000, extend.int)
@@ -182,6 +187,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
       stderr.write_line &"utr: <adding> {result.g[0]} ..< {result.g[^1]}"
     for sample, dp in dps.mpairs:
         result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
+    for lvl, dp in backgrounds.mpairs:
+        result.background_depths[lvl] = dp.values(chrom, result.g[0], result.g[^1])
 
   var lastx:uint32
   var lastg:uint32
@@ -215,6 +222,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
         result.g.add(lastg-1)
         for sample, dp in dps.mpairs:
           result.depths[sample].add(@[int32.low, int32.low])
+        for lvl, dp in backgrounds.mpairs:
+          result.background_depths[lvl].add(@[int32.low, int32.low])
 
       when defined(debug):
         stderr.write_line &"<adding> gap at {lastg} (x:{lastx})"
@@ -226,6 +235,8 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
 
     for sample, dp in dps.mpairs:
       result.depths[sample].add(dp.values(chrom, left, right))
+    for lvl, dp in backgrounds.mpairs:
+      result.background_depths[lvl].add(dp.values(chrom, left, right))
 
   if utrs:
     lastx = result.x[^1] + 1
@@ -239,16 +250,18 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32, m
 
       for sample, dp in dps.mpairs:
         result.depths[sample].add(dp.values(chrom, left, right))
+      for lvl, dp in backgrounds.mpairs:
+        result.background_depths[lvl].add(dp.values(chrom, left, right))
 
   doAssert result.x.len == result.g.len
 
 
-proc plot_data*(g:Gene, d4s:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): GenePlotData =
+proc plot_data*(g:Gene, d4s:TableRef[string, D4], backgrounds:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
   result.unioned_transcript = g.transcripts.union
 
-  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, extend, max_gap, utrs)
+  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, backgrounds, extend, max_gap, utrs)
   for t in g.transcripts:
     if t.`chr` != result.unioned_transcript.`chr`: continue
     result.transcripts.add(result.unioned_transcript.translate(t, extend=extend, max_gap=max_gap))

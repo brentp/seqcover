@@ -1,6 +1,7 @@
 import os
 import d4
 import httpclient
+import sequtils
 import strformat
 import json
 import strutils
@@ -98,6 +99,8 @@ when isMainModule:
   when true:
      #var ge = Gene(symbol: "MUC5B", description: "mucin 5B, oligomeric mucus/gel-forming", transcripts: @[Transcript(cdsstart: 1223123, cdsend: 1261608, chr: "11", position: @[[1223065, 1223193], [1225680, 1225737], [1226204, 1226276], [1226614, 1226876], [1227030, 1227145], [1227307, 1227398], [1227674, 1227781], [1228563, 1228765], [1229169, 1229295], [1229689, 1229807], [1230004, 1230143], [1230489, 1230600], [1230935, 1231005], [1231422, 1231560], [1231995, 1232160], [1232449, 1232544], [1232643, 1232770], [1233012, 1233268], [1233792, 1233848], [1234204, 1234305], [1234528, 1234680], [1235084, 1235223], [1235302, 1235413], [1236385, 1236562], [1236924, 1237164], [1238870, 1239027], [1239437, 1239566], [1239798, 1239943], [1240044, 1240088], [1240177, 1240375], [1240850, 1251743], [1252342, 1252524], [1252808, 1252980], [1254091, 1254351], [1254693, 1254880], [1255040, 1255266], [1255382, 1255558], [1256155, 1256225], [1256670, 1256771], [1257239, 1257271], [1257529, 1257710], [1258098, 1258203], [1258329, 1258367], [1258941, 1259061], [1259755, 1259842], [1259962, 1260085], [1260350, 1260393], [1260625, 1260728], [1261388, 1262172]], strand: 1, transcript: "NM_002458", txstart: 1223065, txend: 1262172)])
     var d4s = read_d4s_to_table(@["d4s/HG00096.final.d4", "d4s/HG00097.final.d4", "d4s/HG00099.final.d4"])
+
+    var backgrounds = read_d4s_to_table(toSeq(walkPattern("seqcover-backgrounds/*.d4")))
     var gpt: seq[GenePlotData]
     for gene in get_genes(@["PIGA", "KCNQ2", "MUC5B", "ARX", "DNM1", "SLC25A22", "CDKL5", "GABRA1", "ITPA", "GABRB1", "FRRS1L", "SLC12A5", "SIK1", "GRIN2D", "FGF12", "CAD", "DENND5A", "MDH2", "SCN1B", "AP3B2", "DENND5A", "MDH2", "GUF1", "YWHAG", "CNPY3", "CPLX1", "RHOBTB2"]):
     #for gene in get_genes(@["PIGA"]):
@@ -119,13 +122,21 @@ when isMainModule:
       #stderr.write_line u.translate(t, extend=10)
       #stderr.write_line "################"
 
-      var pd = gene.plot_data(d4s, extend=10, max_gap=50)
+      var pd = gene.plot_data(d4s, backgrounds, extend=10, max_gap=50)
       gpt.add(pd)
 
       for i, x in pd.plot_coords.x:
         if i == 0: continue
         doAssert x >= pd.plot_coords.x[i-1]
         doAssert pd.plot_coords.g[i] >= pd.plot_coords.g[i-1]
+
+
+      var dlen:int
+      for s, d in pd.plot_coords.depths.mpairs:
+        dlen = d.len
+        break
+      for s, d in pd.plot_coords.background_depths.mpairs:
+        doAssert d.len == dlen
 
       for i, p in pd.unioned_transcript.position:
         var idx = pd.plot_coords.x.lowerBound(p[0].uint32)

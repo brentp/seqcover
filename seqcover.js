@@ -78,6 +78,24 @@ function get_gene_plot_layout(gene) {
 function get_depth_trace(gene) {
 
     var traces = [];
+    for(slvl in gene.plot_coords.background_depths){
+        let lvl = slvl.replace(/^\D+/g, "")
+        let dp = gene.plot_coords.background_depths[slvl].map(function (v) { return v < -1000 ? NaN : v })
+        var trace = {
+            x: gene.plot_coords.x,
+            text: gene.plot_coords.g,
+            y: dp,
+            type: "scatter", 
+            mode:"lines",
+            name: `Percentile: ${lvl}`,
+            line: {width: 1, /* dash: "dot", */ color: 'rgb(200, 200, 200)' },
+            yaxis: "y",
+            hoverinfo: "skip",
+        }
+        traces.push(trace)
+    }
+
+
 
     for (sample in gene.plot_coords.depths) {
         var dp = gene.plot_coords.depths[sample]

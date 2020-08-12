@@ -10,7 +10,7 @@ suite "transcript suite":
     #exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10): tuple[x:seq[uint32], depths: TableRef[string, seq[int32]], g: seq[uint32]] =
     var tr = Transcript(txStart: 10, txEnd: 100, cdsStart: 15, cdsEnd: 95, position: @[[15, 25], [85, 91]])
     var dps = newTable[string, D4]()
-    var res = tr.exon_plot_coords(dps, 10, 10)
+    var res = tr.exon_plot_coords(dps, nil, 10, 10)
     check res.x.len == res.g.len
     for name, depth in res.depths.pairs:
       check res.x.len == depth.len
@@ -38,7 +38,6 @@ suite "transcript suite":
       stderr.write_line "size:", $n
       coords.add(t.exon_plot_coords(d4s, 10, 100))
       ]#
-
 
   test "translate":
 

@@ -73,7 +73,7 @@ suite "translate suite":
     #stderr.write_line ut
     var t = newTable[string, D4]()
     #var gpt = ut.exon_plot_coords(t, extend.uint32, max_gap.uint32)
-    var gpt = @[g.plot_data(t, extend.uint32, max_gap.uint32)]
+    var gpt = @[g.plot_data(t, nil, extend.uint32, max_gap.uint32)]
     check gpt[0].transcripts[0].transcript == "union"
     #echo $(%gpt)
 
