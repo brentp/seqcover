@@ -153,12 +153,14 @@ class Transcript {
 
         var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
              type: "scatter", mode: "lines", showlegend: false,
+             hoverinfo: "none",
              line: { color: aesthetics.TRANSCRIPT_COLOR, width: aesthetics.TRANSCRIPT_WIDTH}}
 
         let parts = this.parts()
 
         var exon_trace = {name: this.data.transcript + " exons", x: [], y:[],
              type: "scatter", mode: "lines", showlegend: false,
+             hoverinfo: "none",
              line: { color: aesthetics.EXON_COLOR, width: aesthetics.EXON_WIDTH}}
         parts.filter(p => p.type == FeatureType.EXON).forEach(e => {
             if((exon_trace.x.length) > 0) {
@@ -171,6 +173,7 @@ class Transcript {
 
         var cds_trace = {name: this.data.transcript + " CDS", x: [], y:[],
              type: "scatter", mode: "lines", showlegend: false,
+             hoverinfo: "none",
              line: { color: aesthetics.CDS_COLOR, width: aesthetics.CDS_WIDTH}}
         parts.filter(p => p.type == FeatureType.CDS).forEach(c => {
             if((cds_trace.x.length) > 0) {
@@ -188,6 +191,16 @@ class Transcript {
         return result
 
     }
+
+
+}
+
+function depth_stats(g_start, g_stop, depths, background_depths) {
+    // given a genomic range report stats for each sample in depths (which is
+    // sample => [depth] and report values outside of ranges in
+    // background_depths which is level => [depth]
+
+
 }
 
 

@@ -32,10 +32,12 @@ function get_gene_plot_layout(gene) {
             tickvals: [gene.plot_coords.x[0], gene.plot_coords.x[mid], gene.plot_coords.x[gene.plot_coords.x.length - 10]],
             ticktext: [gene.plot_coords.g[0], gene.plot_coords.g[mid], gene.plot_coords.g[gene.plot_coords.x.length - 10]],
             // title: "Chromosome " + String(gene.unioned_transcript.chr).replace("chr", "")
+            hovermode: 'x',
         },
         yaxis: {
             title: "Depth",
-            domain: [0.55, 1]
+            domain: [0.55, 1],
+            hovermode: 'closest',
         },
         yaxis2: {
             //title: "Merged<br>Transcripts",
@@ -47,9 +49,10 @@ function get_gene_plot_layout(gene) {
             ticktext: ["Merged<br>Transcript"],
             tickangle: 40,
             domain: [0.0, 0.3],
+            hovermode: 'closest',
         },
-        hovermode: 'closest',
         hoverdistance: 100000,
+        hoverinfo: "none",
         showlegend: false,
     };
 
@@ -64,6 +67,7 @@ function get_gene_plot_layout(gene) {
             domain: [0.0, 0.40],
             tickangle: 40,
             ticktext: gene.transcripts.map(t => t.name),
+            hovermode: 'closest',
         }
 
 
