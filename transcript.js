@@ -192,22 +192,9 @@ class Transcript {
 
     }
 
-    depth_stats(gstart, gstop, xs, gs, depths, background_depths, low_depth_cutoff) {
-        // given a genomic range report, stats for each sample in depths (which is
-        // sample => [depth] and report values outside of ranges in
-        // background_depths which is level => [depth]
-        // columns will be sample,cds_$stat,exon_$stat,total_$stat,region_$stat
-        // for $stat in mean, median, %bases below cutoff, %bases_below low-pctile
-        var gstart = gstart == 0? gs[binary_search(xs, this.txstart)]: gstart
-        var gstop = gstop == 0? gs[binary_search(xs, this.txend)]: gstop;
-
-        let xstart = xs[binary_search(gs, gstart)]
-        let xstop = xs[binary_search(gs, gstop)]
-
-        return this.stats(xstart, xstop, depths, background_depths, low_depth_cutoff)
-    }
-
-    stats(xstart, xstop, depths, background_depths, low_depth_cutoff) {
+    stats(xranges, depths, background_depths, low_depth_cutoff) {
+        // NOTE xranges is in reduced, plot coords, not genomic coords and it
+        // has form [{start: 23, stop: 44}, ...]
         var result = {}
         var background_low;
         // handle missing or undefined backgrounds
@@ -218,26 +205,25 @@ class Transcript {
                 return parseInt(a.replace(/^\D+/g, "")) - parseInt(b.replace(/^\D+/g, ""))
             })[0]
             console.log("LOW:", lo_key)
-            background_low = background_depths[lo_key].slice(xstart, xstop)
-        //console.log("bg low:", background_low)
-        } else {
-            background_low = Array(xstop - xstart).fill(Number.MIN_SAFE_INTEGER)
+            background_low = background_depths[lo_key] //.slice(xstart, xstop)
         }
         var H = Array(16384);
         for(var sample in depths) {
-            let dp = depths[sample].slice(xstart, xstop);
-            //console.log("L:", dp.length, " dp:", dp)
             var S = 0; var N = 0; var lo = 0; var bg_lo = 0;
-            // calculate the histogram to get median
             H.fill(0);
-            dp.forEach((d, i) => {
-                if(d < 0){ return;}
-                lo += (d < low_depth_cutoff);
-                bg_lo += d < background_low[i];
-                H[Math.min(d, H.length-1)] += 1;
-                S += d;
-                N += 1
-            })
+            var dps = depths[sample];
+
+            for(var rng of xranges) {
+                for(var i=rng.start; i<rng.stop; i++){
+                    let d = dps[i]
+                    if(d < 0 || isNaN(d)){ continue;}
+                    lo += (d < low_depth_cutoff);
+                    bg_lo += d < background_low[i];
+                    H[Math.min(d, H.length-1)] += 1;
+                    S += d;
+                    N += 1
+                }
+            }
             result[sample] = {"low": lo, "lt_background": bg_lo}
             var mid = N * 0.5; // 50% of data below this number of samples.
             var j = 0
@@ -248,11 +234,9 @@ class Transcript {
             }
             result[sample]["mean"] = S / N
             result[sample]["median"] = j
-        
         }
         return result;
     }
-
 }
 
 

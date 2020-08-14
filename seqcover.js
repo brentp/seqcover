@@ -253,9 +253,16 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
 
     let low_depth_cutoff = 7; // TODO: get this from user-form input.
-    var stats = transcript.stats(start_idx, stop_idx, gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff) 
+    var selection_stats = transcript.stats([{start:start_idx, stop:stop_idx}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff) 
+    console.log(selection_stats)
+
+    // example of how to get stats for all CDSs. NOTE: this should only be done
+    // once per gene and result cached.
+    var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
+    var cds_stats = transcript.stats(cds, gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
+    console.log("CDS:", cds_stats)
+
     // TODO: use this stats to fill table (to be created).
-    console.log(stats)
 
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]

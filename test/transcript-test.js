@@ -64,7 +64,7 @@ describe('Transcript', function () {
           //{ sampleA: { lt_background: 0, low: 0, mean: 10, median: 10 },
           //  sampleB: { lt_background: 20, low: 20, mean: 0, median: 0 } }
 
-          let stats = tr.stats(20, 40, depths, background_depths, 5);
+          let stats = tr.stats([{start:20, stop:40}], depths, background_depths, 5);
           assert.equal(stats.sampleA.median, 10)
           assert.equal(stats.sampleB.median, 0)
 
