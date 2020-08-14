@@ -221,6 +221,8 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var x = Math.round(data.xvals[0])
     var y = Math.round(Math.abs(data.yvals[0])) // can now use this as an index to get the transcript.
     var transcript = ax == "yaxis2" ? gene.unioned_transcript : gene.transcripts[y]
+
+
     if (transcript == undefined) { return false }
 
     let overlaps = transcript.overlaps(x)
@@ -250,9 +252,15 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var start_idx = binary_search(gene.plot_coords.x, overlaps[0].start)
     var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
 
+    let low_depth_cutoff = 7; // TODO: get this from user-form input.
+    var stats = transcript.stats(start_idx, stop_idx, gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff) 
+    // TODO: use this stats to fill table (to be created).
+    console.log(stats)
+
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]
 
+    // TODO: replace all these calcs with the stuff in stats.
     var means = {}
     hoverInfo.innerHTML = `${gene.unioned_transcript.chr}:${gstart}-${gstop}<br><ul>`
     for (var sample in gene.plot_coords.depths) {

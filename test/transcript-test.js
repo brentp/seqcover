@@ -49,6 +49,34 @@ describe('Transcript', function () {
           assert.equal(traces[0].name, tr.name)
 
       })
+
+      it('stats returns expected values', function() {
+          var depths = {
+              "sampleA": Array(60).fill(10),
+              "sampleB": Array(60).fill(0),
+          }
+          var background_depths = {
+              "p10": Array(60).fill(5),
+              "p90": Array(60).fill(90),
+          }
+
+          background_depths.p10[4] = 500;
+          //{ sampleA: { lt_background: 0, low: 0, mean: 10, median: 10 },
+          //  sampleB: { lt_background: 20, low: 20, mean: 0, median: 0 } }
+
+          let stats = tr.stats(20, 40, depths, background_depths, 5);
+          assert.equal(stats.sampleA.median, 10)
+          assert.equal(stats.sampleB.median, 0)
+
+          assert.equal(stats.sampleA.low, 0)
+          assert.equal(stats.sampleB.low, 20)
+
+          assert.equal(stats.sampleA.lt_background, 0)
+          assert.equal(stats.sampleB.lt_background, 20)
+
+
+
+      })
   });
 
 });
