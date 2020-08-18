@@ -1,6 +1,5 @@
 var nan = NaN; // hack to support json dumped with NaN values.
 const gene_plot_height = 500
-const plot_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
 
 var initalIndex = 0
 var currentRegion = "";
@@ -14,10 +13,17 @@ var showTranscripts = true;
 ------------------------------------------------------------------------------------------------------------------
 */
 
+// https://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer/8069367
+function range(start, end, step = 1) {
+    const len = Math.floor((end - start) / step) + 1
+    return Array(len).fill().map((_, idx) => start + (idx * step))
+  }
+
 //by base depth plot layout
 function get_gene_plot_layout(gene) {
 
-    var mid = Math.round(gene.plot_coords.x.length / 2)
+    // var mid = Math.round(gene.plot_coords.x.length / 2)
+    let step = Math.round(gene.plot_coords.x.length / 10)
 
     var layout = {
         grid: {
@@ -28,10 +34,8 @@ function get_gene_plot_layout(gene) {
         height: gene_plot_height,
         margin: { t: 10, r: 0, b: 30 },
         xaxis: {
-            tickmode: "array",
-            tickvals: [gene.plot_coords.x[0], gene.plot_coords.x[mid], gene.plot_coords.x[gene.plot_coords.x.length - 10]],
-            ticktext: [gene.plot_coords.g[0], gene.plot_coords.g[mid], gene.plot_coords.g[gene.plot_coords.x.length - 10]],
-            // title: "Chromosome " + String(gene.unioned_transcript.chr).replace("chr", "")
+            tickvals: range(gene.plot_coords.x[0], gene.plot_coords.x[gene.plot_coords.x.length - 10], step),
+            ticktext: range(gene.plot_coords.g[0], gene.plot_coords.g[gene.plot_coords.x.length - 10], step),
             hovermode: 'x',
         },
         yaxis: {
@@ -89,7 +93,7 @@ function get_depth_trace(gene) {
             x: gene.plot_coords.x,
             text: gene.plot_coords.g,
             y: dp,
-            type: "scatter", 
+            type: "scatter",
             mode:"lines",
             name: `Percentile: ${lvl}`,
             line: {width: 1, /* dash: "dot", */ color: 'rgb(200, 200, 200)' },
@@ -253,7 +257,7 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
 
     let low_depth_cutoff = 7; // TODO: get this from user-form input.
-    var selection_stats = transcript.stats([{start:start_idx, stop:stop_idx}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff) 
+    var selection_stats = transcript.stats([{start:start_idx, stop:stop_idx}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
     console.log(selection_stats)
 
     // example of how to get stats for all CDSs. NOTE: this should only be done
@@ -460,4 +464,3 @@ jQuery(document).ready(function () {
     generate_plots(0)
     register_handlers()
 })
-
