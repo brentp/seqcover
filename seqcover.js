@@ -37,6 +37,8 @@ function get_gene_plot_layout(gene) {
             tickvals: range(gene.plot_coords.x[0], gene.plot_coords.x[gene.plot_coords.x.length - 10], step),
             ticktext: range(gene.plot_coords.g[0], gene.plot_coords.g[gene.plot_coords.x.length - 10], step),
             hovermode: 'x',
+            showgrid: false,
+            ticklen: 5,
         },
         yaxis: {
             title: "Depth",
