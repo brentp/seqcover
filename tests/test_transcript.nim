@@ -1,6 +1,8 @@
 import unittest
 import seqcoverpkg/transcript
 import seqcoverpkg/utils
+import hts/fai
+import seqcoverpkg/typeenum
 import tables
 import json
 
@@ -9,8 +11,10 @@ suite "transcript suite":
 
     #exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], extend:uint32=10): tuple[x:seq[uint32], depths: TableRef[string, seq[int32]], g: seq[uint32]] =
     var tr = Transcript(txStart: 10, txEnd: 100, cdsStart: 15, cdsEnd: 95, position: @[[15, 25], [85, 91]])
-    var dps = newTable[string, D4]()
-    var res = tr.exon_plot_coords(dps, nil, 10, 10)
+    var dps = newTable[string, Cover]()
+    var bgs = newTable[string, Cover]()
+    var fa:Fai
+    var res = tr.exon_plot_coords(dps, bgs, 10, 10, fa)
     check res.x.len == res.g.len
     for name, depth in res.depths.pairs:
       check res.x.len == depth.len
