@@ -43,7 +43,12 @@ jobs:
     - name : install d4
       run: |
         export HTSLIB=dynamic
-        sudo apt-get install git llvm curl libhts-dev
+        sudo apt-get update
+        sudo apt-get install git llvm curl wget libcurl4-openssl-dev
+        wget https://github.com/samtools/htslib/archive/1.10.2.tar.gz
+        tar xzf 1.10.2.tar.gz
+        cd htslib-1.10.2/
+        sudo make -j4 install
         git clone https://github.com/38/d4-format
         cd d4-format
         cargo build --release
