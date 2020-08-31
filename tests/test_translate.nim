@@ -1,7 +1,9 @@
 import unittest
 import json
 import tables
+import hts/fai
 import seqcoverpkg/transcript
+import seqcoverpkg/typeenum
 import seqcoverpkg/utils
 
 var extend = 10
@@ -68,12 +70,14 @@ suite "translate suite":
     var ut = u.translate(u, extend.uint32, max_gap.uint32)
 
     var g = Gene(transcripts: @[u])
+    var fa:Fai
 
     #stderr.write_line u
     #stderr.write_line ut
-    var t = newTable[string, D4]()
+    var t = newTable[string, Cover]()
+    var b = newTable[string, Cover]()
     #var gpt = ut.exon_plot_coords(t, extend.uint32, max_gap.uint32)
-    var gpt = @[g.plot_data(t, nil, extend.uint32, max_gap.uint32)]
+    var gpt = @[g.plot_data(t, b, extend.uint32, max_gap.uint32, fa)]
     check gpt[0].transcripts[0].transcript == "union"
     #echo $(%gpt)
 
