@@ -3,13 +3,15 @@ import strformat
 import math
 import os
 import d4
+import hts
 import tables
 import ./utils
+import ./typeenum
 import algorithm
 import times
 
 
-proc summarize_block(d4s: var seq[D4], chrom:string, start:uint32, stop:uint32, percentiles: seq[float], outs:var seq[D4], vals: var seq[seq[int32]], out_vals: var seq[seq[int32]]) =
+proc summarize_block(d4s: var seq[Cover], chrom:string, start:uint32, stop:uint32, percentiles: seq[float], outs:var seq[D4], vals: var seq[seq[int32]], out_vals: var seq[seq[int32]]) =
   # extract data for each sample from start to stop, calculate per-base
   # percentiles and write to outs.
   # vals and out_vals just let us avoid allocations
@@ -66,9 +68,9 @@ proc summarize_block(d4s: var seq[D4], chrom:string, start:uint32, stop:uint32, 
     outs[i].write(chrom, start, out_vals[i])
 
 
-proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq[int]) =
+proc generate_backgrounds(dps: var seq[Cover], output_dir: string, percentiles: seq[int], fai:Fai) =
   let block_size = 1_000_000'u32
-  let info = d4s[0].chromosomes
+  let info = dps[0].chromosomes(fai)
   var chroms = newSeqOfCap[tuple[name:string, length:int]](info.len)
   for k, v in info: chroms.add((k, v.int))
 
@@ -83,7 +85,7 @@ proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq
   for i in 0..<percentiles.len:
     doAssert outs[i].open(&"{outputDir}/seqcover_p{percentiles[i]}.d4", mode="w")
     outs[i].set_chromosomes(chroms)
-  var vals = newSeq[seq[int32]](d4s.len)
+  var vals = newSeq[seq[int32]](dps.len)
   for v in vals.mitems: v.setLen(block_size)
 
   var out_vals = newSeq[seq[int32]](outs.len)
@@ -92,13 +94,13 @@ proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq
 
 
   for (chrom, length) in info.pairs:
-    d4s.check_same_lengths(chrom, length)
+    dps.check_same_lengths(chrom, length, fai)
     let t0 = cpuTime()
     var j = 0
     for i in countup(0'u32, length, block_size):
       if j mod 10 == 0 and i > 0:
         echo &"{chrom}:{min(i + blocksize, length)} time:{cpuTime() - t0:.2f} bases/second: {min(i + blocksize, length).float / (cpuTime() - t0):.0f}"
-      d4s.summarize_block(chrom, i, min(i + block_size, length), pctiles, outs, vals, out_vals)
+      dps.summarize_block(chrom, i, min(i + block_size, length), pctiles, outs, vals, out_vals)
       j.inc
 
   for o in outs.mitems:
@@ -107,18 +109,24 @@ proc generate_backgrounds(d4s: var seq[D4], output_dir: string, percentiles: seq
 proc main() =
   let p = newParser("seqcover background"):
     option("-o", "--output-dir", help="directory for output", default="seqcover-backgrounds")
+    option("-f", "--fasta", help="indexed fasta required for bed.gz files")
     arg("samples", nargs= -1, help="per-base bed.gz files or d4 files or a glob of either to generate background")
 
   let percentiles = @[5, 10, 50, 90, 95]
   var argv = commandLineParams()
-  if len(argv) > 0 and argv[0] == "report":
+  if len(argv) > 0 and argv[0] == "background":
     argv = argv[1..argv.high]
   if len(argv) == 0:
     argv.add("--help")
 
+  var fai:Fai
+
   var opts = p.parse(argv)
   if opts.help:
     quit 0
+
+  if opts.fasta != "":
+    doAssert fai.open(opts.fasta), "[seqcover] error opening fasta file:" & opts.fasta
 
   let paths = get_glob_samples(opts.samples)
   echo paths
@@ -127,10 +135,8 @@ proc main() =
   if paths.len < 10:
     stderr.write_line "[seqcover] warning: creating background with fewer than 10 samples might give unexpected results"
 
-  var d4s = read_d4s(paths)
-  d4s.generate_backgrounds(opts.output_dir, percentiles)
-
-
+  var covers = read_dps(paths)
+  covers.generate_backgrounds(opts.output_dir, percentiles, fai)
 
   echo opts
 

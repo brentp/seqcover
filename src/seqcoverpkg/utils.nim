@@ -3,8 +3,10 @@ import d4
 import httpclient
 import sequtils
 import strformat
+import hts/fai
 import json
 import strutils
+import ./typeenum
 import ./transcript
 export transcript
 
@@ -71,11 +73,10 @@ proc get_glob_samples*(paths: seq[string]): seq[string] =
       raise newException(OSError, "[seqcover]: file:" & p & " not found")
 
 
-proc read_d4s*(paths: seq[string]): seq[D4] =
-  result = newSeq[D4](paths.len)
+proc read_dps*(paths: seq[string]): seq[Cover] =
+  result = newSeq[Cover](paths.len)
   for i, p in paths:
-    if not result[i].open(p):
-      raise newException(OSError, "[seqcover] couldn't open d4 file:" & p)
+    result[i] = open_dp(p)
 
 proc read_d4s_to_table*(paths: seq[string]): TableRef[string, D4] =
   result = newTable[string, D4]()
@@ -88,9 +89,12 @@ proc read_d4s_to_table*(paths: seq[string]): TableRef[string, D4] =
       raise newException(OSError, "[seqcover] couldn't open d4 file:" & p)
     result[name] = d
 
-proc check_same_lengths*(d4s: seq[D4], chrom: string, length: uint32) =
-  for d in d4s:
-    doAssert d.chromosomes[chrom] == length, "[seqcover] differing chromosome lengths among samples"
+proc check_same_lengths*(dps: var seq[Cover], chrom: string, length: uint32, fai:Fai) =
+  var lens = dps[0].chromosomes(fai)
+  for d in dps.mitems:
+    var clens = d.chromosomes(fai)
+
+    doAssert lens[chrom] == clens[chrom], "[seqcover] differing chromosome lengths among samples"
 
 when isMainModule:
   import json
