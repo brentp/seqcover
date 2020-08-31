@@ -50,7 +50,7 @@ proc main() =
     quit 0
 
   var backgrounds = read_backgrounds(opts.backgrounds)
-  var sample_d4s = read_d4s(opts.samples)
+  var sample_d4s = read_dps(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
 
 when isMainModule:

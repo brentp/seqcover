@@ -6,6 +6,8 @@ import strutils
 import d4
 export d4
 import tables
+import ./typeenum
+import hts/fai
 
 type Transcript* = object
   cdsstart*: int
@@ -149,29 +151,27 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32): Tran
 proc `%`*[T](table: TableRef[string, T]): JsonNode =
   result = json.`%`(table[])
 
-proc get_chrom(chrom:string, dp:D4): string =
+proc get_chrom(chrom:string, dp:var Cover, fai:Fai): string =
   ## add or remove "chr" to match chromosome names.
-  if chrom in dp.chromosomes: return chrom
-  if chrom[0] != 'c' and ("chr" & chrom) in dp.chromosomes:
+  var chroms = dp.chromosomes(fai)
+  if chrom in chroms: return chrom
+  if chrom[0] != 'c' and ("chr" & chrom) in chroms:
     result = "chr" & chrom
-  elif chrom[0] == 'c' and chrom.len > 3 and chrom[1] == 'h' and chrom[2] == 'r' and chrom[3..chrom.high] in dp.chromosomes:
+  elif chrom[0] == 'c' and chrom.len > 3 and chrom[1] == 'h' and chrom[2] == 'r' and chrom[3..chrom.high] in chroms:
     result = chrom[3..chrom.high]
   else:
     raise newException(KeyError, "chromosome not found:" & chrom)
 
-proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], backgrounds:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): plot_coords =
+proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, Cover], backgrounds:TableRef[string, Cover], extend:uint32, max_gap:uint32, fai:Fai, utrs:bool=true): plot_coords =
   ## extract exonic depths for the transcript, extending into intron and
   ## up/downstream. This handles conversion to plot coordinates by removing
   ## introns. g: is the actual genomic coordinates.
-  var backgrounds = backgrounds
-  if backgrounds == nil:
-    backgrounds = newTable[string, D4]()
   var chrom = tr.`chr`
-  var dp: D4
+  var dp: Cover
   for k, v in dps:
     dp = v
     break
-  if dps != nil and dps.len > 0: chrom = chrom.get_chrom(dp)
+  if dps.len > 0: chrom = chrom.get_chrom(dp, fai)
   let left = max(0, tr.txstart - min(1000, extend.int))
 
   result.depths = newTable[string, seq[int32]]()
@@ -186,9 +186,13 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], backgrounds:Tabl
     when defined(debug):
       stderr.write_line &"utr: <adding> {result.g[0]} ..< {result.g[^1]}"
     for sample, dp in dps.mpairs:
-        result.depths[sample] = dp.values(chrom, result.g[0], result.g[^1])
+      var x = newSeqUninitialized[int32](result.g[^1] - result.g[0])
+      dp.values(chrom, result.g[0], x)
+      result.depths[sample] = x
     for lvl, dp in backgrounds.mpairs:
-        result.background_depths[lvl] = dp.values(chrom, result.g[0], result.g[^1])
+      var x = newSeqUninitialized[int32](result.g[^1] - result.g[0])
+      dp.values(chrom, result.g[0], x)
+      result.background_depths[lvl] = x
 
   var lastx:uint32
   var lastg:uint32
@@ -233,10 +237,13 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], backgrounds:Tabl
     result.g.add(toSeq(left..<right))
     result.x.add(toSeq((lastx..<(lastx + size))))
 
+    var x = newSeqUninitialized[int32](right - left)
     for sample, dp in dps.mpairs:
-      result.depths[sample].add(dp.values(chrom, left, right))
+      dp.values(chrom, left, x)
+      result.depths[sample].add(x)
     for lvl, dp in backgrounds.mpairs:
-      result.background_depths[lvl].add(dp.values(chrom, left, right))
+      dp.values(chrom, left, x)
+      result.background_depths[lvl].add(x)
 
   if utrs:
     lastx = result.x[^1] + 1
@@ -248,20 +255,23 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, D4], backgrounds:Tabl
       result.g.add(toSeq(left..<right))
       result.x.add(toSeq((lastx..<(lastx + size))))
 
+      var x = newSeqUninitialized[int32](right - left)
       for sample, dp in dps.mpairs:
-        result.depths[sample].add(dp.values(chrom, left, right))
+        dp.values(chrom, left, x)
+        result.depths[sample].add(x)
       for lvl, dp in backgrounds.mpairs:
-        result.background_depths[lvl].add(dp.values(chrom, left, right))
+        dp.values(chrom, left, x)
+        result.background_depths[lvl].add(x)
 
   doAssert result.x.len == result.g.len
 
 
-proc plot_data*(g:Gene, d4s:TableRef[string, D4], backgrounds:TableRef[string, D4], extend:uint32, max_gap:uint32, utrs:bool=true): GenePlotData =
+proc plot_data*(g:Gene, d4s:TableRef[string, Cover], backgrounds:TableRef[string, Cover], extend:uint32, max_gap:uint32, fai:Fai, utrs:bool=true): GenePlotData =
   result.description = g.description
   result.symbol = g.symbol
   result.unioned_transcript = g.transcripts.union
 
-  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, backgrounds, extend, max_gap, utrs)
+  result.plot_coords = result.unioned_transcript.exon_plot_coords(d4s, backgrounds, extend, max_gap, fai, utrs)
   for t in g.transcripts:
     if t.`chr` != result.unioned_transcript.`chr`: continue
     result.transcripts.add(result.unioned_transcript.translate(t, extend=extend, max_gap=max_gap))
