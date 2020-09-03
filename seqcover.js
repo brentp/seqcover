@@ -214,6 +214,8 @@ function mean(data) {
     return result / n
 }
 
+var datatable = null;
+
 function handle_hover(data, depth_traces, gene, gene_layout) {
     //  this function handles hover events in the transcript plots. it
     //  finds the correct transcript and feature (exon/transcript/UTR, etc)
@@ -262,6 +264,8 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var selection_stats = transcript.stats([{start:start_idx, stop:stop_idx}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
     console.log(selection_stats)
 
+    var tx_stats = transcript.stats([{start:0, stop:gene.plot_coords.x.length}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
+
     // example of how to get stats for all CDSs. NOTE: this should only be done
     // once per gene and result cached.
     var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
@@ -273,15 +277,27 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]
 
-    // TODO: replace all these calcs with the stuff in stats.
-    var means = {}
-    hoverInfo.innerHTML = `${gene.unioned_transcript.chr}:${gstart}-${gstop}<br><ul>`
+    var columns = [{title:"sample"}, {title:"transcript mean"}, {title:"CDS mean"}, {title:"selection mean"}, 
+                   {title: "transcript bases < lower"}, {title: "CDS bases < lower"}, {title: "selection bases < lower"}];
+    var table = []
+
+    //var means = {}
+    //hoverInfo.innerHTML = `${gene.unioned_transcript.chr}:${gstart}-${gstop}<br><ul>`
     for (var sample in gene.plot_coords.depths) {
-        let depths = gene.plot_coords.depths[sample];
-        means[sample] = mean(depths.slice(start_idx, stop_idx)).toPrecision(4)
-        hoverInfo.innerHTML += `<li><b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br></li>`
+        var row = [sample, tx_stats[sample].mean.toFixed(2), cds_stats[sample].mean.toFixed(2), selection_stats[sample].mean.toFixed(2), tx_stats[sample].low, cds_stats[sample].low, selection_stats[sample].low]
+        table.push(row)
+        //let depths = gene.plot_coords.depths[sample];
+        //means[sample] = mean(depths.slice(start_idx, stop_idx)).toPrecision(4)
+        //hoverInfo.innerHTML += `<li><b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br></li>`
     }
-    hoverInfo.innerHTML += "</ul>"
+    //hoverInfo.innerHTML += "</ul>"
+    if(datatable) {
+        datatable.clear()
+        datatable.rows.add(table)
+        datatable.draw()
+    } else {
+        datatable = jQuery('table#stats_table').DataTable({data:table, columns:columns})
+    }
 
 
 }
