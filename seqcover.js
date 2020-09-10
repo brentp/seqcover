@@ -88,9 +88,14 @@ function get_gene_plot_layout(gene) {
 function get_depth_trace(gene) {
 
     var traces = [];
+    var low_lvl = 10000;
+    var low_dp;
     for(slvl in gene.plot_coords.background_depths){
         let lvl = slvl.replace(/^\D+/g, "")
+
         let dp = gene.plot_coords.background_depths[slvl].map(function (v) { return v < -1000 ? NaN : v })
+        if (lvl < low_lvl) { low_dp = dp; low_lvl = lvl }
+
         var trace = {
             x: gene.plot_coords.x,
             text: gene.plot_coords.g,
@@ -107,19 +112,50 @@ function get_depth_trace(gene) {
 
 
 
+    var color_list = Plotly.d3.scale.category20().range()
+    var i = -1;
+
     for (sample in gene.plot_coords.depths) {
+        i += 1
         var dp = gene.plot_coords.depths[sample]
         dp = dp.map(function (v) { return v < -1000 ? NaN : v })
-
+        var color = color_list[i];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scatter', mode: 'lines', name: sample, line: { width: 1 },
+            type: 'scatter', mode: 'lines', name: sample, line: { width: 0.66, color:color_list[i]},
             hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
             hoverinfo: "text",
             yaxis: "y",
         };
 
         traces.push(trace);
+
+        // extract parts of this sample that are below the threshold and plot
+        // in a similar trace with wider line.
+        if(low_dp) {
+            var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 2.4, color: color_list[i]}, 
+                hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
+                hoverinfo: "text",
+                connectgaps: false,
+                yaxis: "y",
+            };
+
+            dp.forEach((d, i) => {
+                //if(d < low_dp[i]) {
+                if(d < 40){
+                    low_trace.x.push(gene.plot_coords.x[i])
+                    low_trace.y.push(d)
+                } else {
+                    if(low_trace.x.length > 0 && !isNaN(low_trace.x[low_trace.x.length-1])){
+                        low_trace.x.push(gene.plot_coords.x[i])
+                        low_trace.y.push(null)
+                    }
+                }
+
+            })
+            traces.push(low_trace)
+
+        }
     };
 
     return (traces)

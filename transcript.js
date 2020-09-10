@@ -147,8 +147,7 @@ class Transcript {
     traces(y_offset, xs, gs) {
 
         function get_genomic_coord(x) {
-            if(isNaN(x)){ return NaN }
-            return gs[binary_search(xs, x)]
+            return isNaN(x) ? NaN : gs[binary_search(xs, x)]
         }
 
         var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
