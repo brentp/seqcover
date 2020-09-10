@@ -72,7 +72,7 @@ function get_gene_plot_layout(gene) {
             showlegend: false,
             domain: [0.0, 0.40],
             tickangle: 40,
-            ticktext: gene.transcripts.map(t => t.name),
+            ticktext: gene.transcripts.map(t => t.data.transcript),
             hovermode: 'closest',
         }
 
@@ -134,8 +134,7 @@ function get_depth_trace(gene) {
         // in a similar trace with wider line.
         if(low_dp) {
             var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 2.4, color: color_list[i]}, 
-                hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
-                hoverinfo: "text",
+                hoverinfo: "none",
                 connectgaps: false,
                 yaxis: "y",
             };
@@ -213,7 +212,7 @@ function plot_per_base_depth(gene) {
         // each transcript is centered on the negative integers.
         gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
         gene_layout.yaxis3.tickvals = [...Array(gene.transcripts.length).keys()].map(f => -f)
-        gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.name)
+        gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.data.transcript)
         console.log(gene_layout.yaxis3)
 
     };
@@ -350,8 +349,8 @@ function generate_plots(selected_region) {
     var g = plot_data[selected_region]
     if (g.unioned_transcript.constructor.name == "Object") {
         g.unioned_transcript = new Transcript(g.unioned_transcript)
+        g.transcripts = g.transcripts.map(t => new Transcript(t))
     }
-    g.transcripts = g.transcripts.map(t => new Transcript(t))
 
     //Plot per base depths
     plot_per_base_depth(g)
@@ -484,31 +483,6 @@ function register_handlers() {
 
     });
 
-    //Turn on and off the transcript plot
-    // $("#showTranscripts").click(function () {
-
-    //     //Update bool value for transcripts
-    //     showTranscripts = !(showTranscripts)
-
-    //     // Update button text
-    //     // Update div class
-    //     if (showTranscripts) {
-    //         $(this).text("Hide Transcripts")
-    //         document.getElementById("gene_plot").className = "big_div";
-    //     } else {
-    //         $(this).text("Show Transcripts")
-    //         document.getElementById("gene_plot").className = "med_div";
-    //     };
-
-    //     //Redraw per base depth plot
-    //     //Index of plot in plot_data and gene data
-    //     var plotIndex = selected_region_index()
-    //     var selectedGene = plot_data[plotIndex];
-
-    //     //Plot per base depths
-    //     plot_per_base_depth(selectedGene)
-
-    // });
 }
 
 //Load first region
