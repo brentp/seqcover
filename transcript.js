@@ -203,7 +203,6 @@ class Transcript {
             var lo_key = Object.keys(background_depths).sort((a, b) => {
                 return parseInt(a.replace(/^\D+/g, "")) - parseInt(b.replace(/^\D+/g, ""))
             })[0]
-            console.log("LOW:", lo_key)
             background_low = background_depths[lo_key] //.slice(xstart, xstop)
         }
         var H = Array(16384);

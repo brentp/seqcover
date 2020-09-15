@@ -42,7 +42,7 @@ function get_gene_plot_layout(gene) {
         },
         yaxis: {
             title: "Depth",
-            domain: [0.55, 1],
+            domain: [0.28, 1],
             hovermode: 'closest',
         },
         yaxis2: {
@@ -54,7 +54,7 @@ function get_gene_plot_layout(gene) {
             tickvals: [0],
             ticktext: ["Merged<br>Transcript"],
             tickangle: 40,
-            domain: [0.0, 0.3],
+            domain: [0.0, 0.28],
             hovermode: 'closest',
         },
         hoverdistance: 100000,
@@ -64,13 +64,13 @@ function get_gene_plot_layout(gene) {
 
     //Add the 3rd layout if show transcripts is on
     if (showTranscripts) {
-        layout.yaxis.domain = [0.55, 0.90]
-        layout.yaxis2.domain = [0.4, 0.55]
+        layout.yaxis.domain = [0.28, 1]
+        layout.yaxis2.domain = [0.25, 0.28]
         layout.yaxis3 = {
             range: [0, 2],
             zeroline: false,
             showlegend: false,
-            domain: [0.0, 0.40],
+            domain: [0.0, 0.25],
             tickangle: 40,
             ticktext: gene.transcripts.map(t => t.data.transcript),
             hovermode: 'closest',
@@ -122,7 +122,7 @@ function get_depth_trace(gene) {
         var color = color_list[i];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scatter', mode: 'lines', name: sample, line: { width: 0.66, color:color_list[i]},
+            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.66, color:color_list[i]},
             hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
             hoverinfo: "text",
             yaxis: "y",
@@ -511,9 +511,11 @@ function draw_heatmap() {
                yaxis: {title: "Gene"}}
 
     //https://plotly.com/javascript/reference/heatmap/
-    Plotly.newPlot("heatmap_plot", [{x: x, y:y, z:z,  type: 'heatmap', hoverongaps: false, colorscale: "Greys"}], hlayout)
+    return Plotly.newPlot("heatmap_plot", [{x: x, y:y, z:z,  type: 'heatmap', hoverongaps: false, colorscale: "Greys"}], hlayout)
 
 }
+
+var G = null
 
 //Load first region
 jQuery(document).ready(function () {
@@ -524,9 +526,34 @@ jQuery(document).ready(function () {
         }
     }
 
+
+    draw_heatmap().then(function(){
+        // https://issue.life/questions/44297012
+		// start of events for xticks.
+        var xticks = jQuery(".xaxislayer-above > .xtick > text")
+		xticks.css({"cursor": "crosshair"})
+		xticks.each(function(t) { 
+			var item = Plotly.d3.select(this);
+            item.attr('pointer-events', 'all'); 
+		    item.on("click", function(e) { 
+				var n = jQuery(this)
+				xticks.css({"font-weight": "normal"})
+				n.css({"font-weight": "bold"})
+				var sample = n.text()
+				// TODO: highlight this sample in the plot
+				// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
+			}).on("unhover", function(e) {
+			})
+        })
+
+    })
+
+
+
     // register tooltips
     $('[data-toggle="tooltip"]').tooltip()
-    draw_heatmap()
     generate_plots(0)
     register_handlers()
+
+
 })
