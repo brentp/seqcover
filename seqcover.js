@@ -347,10 +347,6 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
 function generate_plots(selected_region) {
 
     var g = plot_data[selected_region]
-    if (g.unioned_transcript.constructor.name == "Object") {
-        g.unioned_transcript = new Transcript(g.unioned_transcript)
-        g.transcripts = g.transcripts.map(t => new Transcript(t))
-    }
 
     //Plot per base depths
     plot_per_base_depth(g)
@@ -485,10 +481,52 @@ function register_handlers() {
 
 }
 
+function draw_heatmap() {
+    var low_depth_cutoff = 7;
+    var stat = "CDS"
+    var z = []
+    var x = [] // samples
+    var y = [] // genes
+    for(var i = 0; i < plot_data.length; i++){
+        var g = plot_data[i]
+        y.push(g.symbol)
+        var transcript = g.unioned_transcript
+        var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
+        var cds_stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+        var row = []
+
+        for(s in cds_stats) {
+            if(i == 0){
+                x.push(s)
+            }
+            row.push(cds_stats[s].mean)
+        }
+        z.push(row)
+    }
+    // heatmap draws from bottom up by default
+    z = z.reverse()
+    y = y.reverse()
+
+    hlayout = {height: 25 * y.length, title: "Mean CDS Depth", autosize: true, xaxis: {title: "Sample"},
+               yaxis: {title: "Gene"}}
+
+    //https://plotly.com/javascript/reference/heatmap/
+    Plotly.newPlot("heatmap_plot", [{x: x, y:y, z:z,  type: 'heatmap', hoverongaps: false, colorscale: "Greys"}], hlayout)
+
+}
+
 //Load first region
 jQuery(document).ready(function () {
+    for(g of plot_data) {
+        if (g.unioned_transcript.constructor.name == "Object") {
+            g.unioned_transcript = new Transcript(g.unioned_transcript)
+            g.transcripts = g.transcripts.map(t => new Transcript(t))
+        }
+    }
+
     // register tooltips
     $('[data-toggle="tooltip"]').tooltip()
+    draw_heatmap()
     generate_plots(0)
     register_handlers()
 })
