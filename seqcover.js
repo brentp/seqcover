@@ -530,17 +530,37 @@ jQuery(document).ready(function () {
     draw_heatmap().then(function(){
         // https://issue.life/questions/44297012
 		// start of events for xticks.
-        var xticks = jQuery(".xaxislayer-above > .xtick > text")
+        var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
 		xticks.css({"cursor": "crosshair"})
-		xticks.each(function(t) { 
-			var item = Plotly.d3.select(this);
+	    var d = document.getElementById("gene_plot")
+
+		xticks.each(function(i) { 
+			console.log(this)
+			//var item = Plotly.d3.select(this);
+			var item = jQuery(this);
             item.attr('pointer-events', 'all'); 
+			item.attr('_i', i)
 		    item.on("click", function(e) { 
 				var n = jQuery(this)
-				xticks.css({"font-weight": "normal"})
-				n.css({"font-weight": "bold"})
+				var undo = n.css("font-weight") == "800";
+				xticks.css({"font-weight": "400"})
 				var sample = n.text()
-				// TODO: highlight this sample in the plot
+				var ii = parseInt(item.attr("_i"))
+				var vals = null
+				var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
+				console.log("n_bg:", n_bg)
+				if(undo) {
+					vals = d.data.map((_, i) => 1)
+				} else {
+					n.css({"font-weight": "800"})
+					console.log("ii:", ii)
+					vals = d.data.map((t, i) => {
+						console.log(t, i, xticks.length)
+						return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 *xticks.length + n_bg) ? 1: 0.15
+					})
+				}
+				Plotly.restyle(d, 'opacity', vals)
+
 				// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
 			}).on("unhover", function(e) {
 			})
