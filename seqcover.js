@@ -482,32 +482,47 @@ function register_handlers() {
 }
 
 function draw_heatmap() {
+
+	let stat_metric = jQuery("#metric_select").val()
+
     var low_depth_cutoff = 7;
-    var stat = "CDS"
     var z = []
     var x = [] // samples
     var y = [] // genes
+
+	var is_cds = stat_metric.startsWith("cds")
+	var metric = stat_metric.split("_")[1]
     for(var i = 0; i < plot_data.length; i++){
         var g = plot_data[i]
         y.push(g.symbol)
+
         var transcript = g.unioned_transcript
-        var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
-        var cds_stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+		var stats = null
+		if(is_cds) {
+			console.log("CDS")
+			var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
+			stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+		 } else {
+			console.log("transcript")
+			stats = transcript.stats([{start:0, stop:g.plot_coords.x.length}], g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+		 }
+
         var row = []
 
-        for(s in cds_stats) {
+        for(s in stats) {
             if(i == 0){
                 x.push(s)
             }
-            row.push(cds_stats[s].mean)
+            row.push(stats[s][metric])
         }
+		console.log(row)
         z.push(row)
     }
     // heatmap draws from bottom up by default
     z = z.reverse()
     y = y.reverse()
 
-    hlayout = {height: 25 * y.length, title: "Mean CDS Depth", autosize: true, xaxis: {title: "Sample"},
+    hlayout = {height: 25 * y.length, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
                yaxis: {title: "Gene"}}
 
     //https://plotly.com/javascript/reference/heatmap/
@@ -527,46 +542,7 @@ jQuery(document).ready(function () {
     }
 
 
-    draw_heatmap().then(function(){
-        // https://issue.life/questions/44297012
-		// start of events for xticks.
-        var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
-		xticks.css({"cursor": "crosshair"})
-	    var d = document.getElementById("gene_plot")
-
-		xticks.each(function(i) { 
-			console.log(this)
-			//var item = Plotly.d3.select(this);
-			var item = jQuery(this);
-            item.attr('pointer-events', 'all'); 
-			item.attr('_i', i)
-		    item.on("click", function(e) { 
-				var n = jQuery(this)
-				var undo = n.css("font-weight") == "800";
-				xticks.css({"font-weight": "400"})
-				var sample = n.text()
-				var ii = parseInt(item.attr("_i"))
-				var vals = null
-				var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
-				console.log("n_bg:", n_bg)
-				if(undo) {
-					vals = d.data.map((_, i) => 1)
-				} else {
-					n.css({"font-weight": "800"})
-					console.log("ii:", ii)
-					vals = d.data.map((t, i) => {
-						console.log(t, i, xticks.length)
-						return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 *xticks.length + n_bg) ? 1: 0.15
-					})
-				}
-				Plotly.restyle(d, 'opacity', vals)
-
-				// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
-			}).on("unhover", function(e) {
-			})
-        })
-
-    })
+	jQuery('#metric_select').on('change', function() { draw_heatmap().then(tie_heatmap_to_line_plot)}).trigger('change') 
 
 
 
@@ -577,3 +553,42 @@ jQuery(document).ready(function () {
 
 
 })
+
+function tie_heatmap_to_line_plot() {	
+	// clicks on heatmap x-axis labels highlights sample in line plot
+	// https://issue.life/questions/44297012
+	var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
+	xticks.css({"cursor": "crosshair"})
+	var d = document.getElementById("gene_plot")
+
+	xticks.each(function(i) { 
+		//var item = Plotly.d3.select(this);
+		var item = jQuery(this);
+		item.attr('pointer-events', 'all'); 
+		item.attr('_i', i)
+		item.on("click", function(e) { 
+			var n = jQuery(this)
+			var undo = n.css("font-weight") == "800";
+			xticks.css({"font-weight": "400"})
+			var sample = n.text()
+			var ii = parseInt(item.attr("_i"))
+			var vals = null
+			var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
+			console.log("n_bg:", n_bg)
+			if(undo) {
+				vals = d.data.map((_, i) => 1)
+			} else {
+				n.css({"font-weight": "800"})
+				console.log("ii:", ii)
+				vals = d.data.map((t, i) => {
+					//console.log(t, i, xticks.length)
+					return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 *xticks.length + n_bg) ? 1: 0.15
+				})
+			}
+			Plotly.restyle(d, 'opacity', vals)
+
+			// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
+		}).on("unhover", function(e) {
+		})
+	})
+}

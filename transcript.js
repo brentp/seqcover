@@ -222,7 +222,7 @@ class Transcript {
                     N += 1
                 }
             }
-            result[sample] = {"low": lo, "lt_background": bg_lo}
+            result[sample] = {"low": lo, "lt-background": bg_lo}
             var mid = N * 0.5; // 50% of data below this number of samples.
             var j = 0
             var nc = H[j]
