@@ -106,15 +106,15 @@ proc generate_backgrounds(dps: var seq[Cover], output_dir: string, percentiles: 
   for o in outs.mitems:
     o.close()
 
-proc main() =
-  let p = newParser("seqcover background"):
+proc generate_background_main*() =
+  let p = newParser("seqcover generate-background"):
     option("-o", "--output-dir", help="directory for output", default="seqcover-backgrounds")
     option("-f", "--fasta", help="indexed fasta required for bed.gz files")
     arg("samples", nargs= -1, help="per-base bed.gz files or d4 files or a glob of either to generate background")
 
   let percentiles = @[5, 10, 50, 90, 95]
   var argv = commandLineParams()
-  if len(argv) > 0 and argv[0] == "background":
+  if len(argv) > 0 and argv[0] == "generate-background":
     argv = argv[1..argv.high]
   if len(argv) == 0:
     argv.add("--help")
@@ -142,4 +142,4 @@ proc main() =
 
 
 when isMainModule:
-  main()
+  generate_background_main()

@@ -1,10 +1,14 @@
 import argparse
 import strformat
+import tables
 import sequtils
+import hts/fai
 import tables
 import os
 import d4
 import ./seqcoverpkg/utils
+import ./seqcoverpkg/transcript
+import ./seqcoverpkg/background
 
 proc get_pctile(path:string): int =
   let parts = path.split("_")
@@ -19,7 +23,7 @@ proc get_pctile(path:string): int =
 proc read_backgrounds(dir:string): TableRef[int, D4] =
   if dir == "": return
   result = newTable[int, D4]()
-  if not existsDir(dir):
+  if not dirExists(dir):
     raise newException(OSError, "[seqcover] directory {dir} not found")
   for path in (&"{dir}/seqcover_*.d4").walkFiles:
     var d:D4
@@ -32,12 +36,12 @@ proc read_backgrounds(dir:string): TableRef[int, D4] =
     raise newException(OSError, msg)
   stderr.write_line &"[seqcover] read {result.len} background percentiles"
 
-proc main() =
+proc report_main() =
   let p = newParser("seqcover report"):
-    option("--server-port", default="", help="optional port on which to start local server for interactive viewing")
     option("--backgrounds", default="", help="optional directory created with seqcover background")
     option("--genes", default="", help="comma-delimited list of genes for initial report")
-    arg("samples", nargs= -1, help="d4 files or a glob of d4 files")
+    option("--fasta", default="", help="required path to fai indexed fasta file")
+    arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
 
   var argv = commandLineParams()
   if len(argv) > 0 and argv[0] == "report":
@@ -48,10 +52,49 @@ proc main() =
   var opts = p.parse(argv)
   if opts.help:
     quit 0
+  if opts.fasta == "":
+    echo p.help
+    stderr.write_line "[seqcover] --fasta argument is required."
+    quit 1
+
+  var fa:Fai
+  if not fa.open(opts.fasta):
+    quit "[seqcover] couldn't open fasta file"
 
   var backgrounds = read_backgrounds(opts.backgrounds)
   var sample_d4s = read_dps(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
+  var gpt: seq[GenePlotData]
+  for gene in get_genes(opts.genes.split(",")):
+     var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
+     gpt.add(pd)
+
+
+
+
+proc main() =
+  type pair = object
+    fn: proc()
+    description: string
+
+  var dispatcher = {
+    "generate-background": pair(fn:generate_background_main, description: "generate background file(s) from a set of samples"),
+    "report": pair(fn:report_main, description: "create an HTML report from a set of sample coverage files")
+  }.toOrderedTable
+
+  var args = commandLineParams()
+  if len(args) > 0 and args[0] in dispatcher:
+    dispatcher[args[0]].fn()
+    return
+
+  if len(args) == 0 or args[0] in ["-h", "--help"]:
+    stdout.write_line "Commands: "
+    for k, v in dispatcher:
+      echo &"  {k:<13}:   {v.description}"
+  else:
+    echo &"unknown program '{args[0]}'"
+    quit ""
+
 
 when isMainModule:
   main()
