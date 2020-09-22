@@ -90,7 +90,7 @@ function get_depth_trace(gene) {
     var traces = [];
     var low_lvl = 10000;
     var low_dp;
-    for(slvl in gene.plot_coords.background_depths){
+    for(var slvl in gene.plot_coords.background_depths){
         let lvl = slvl.replace(/^\D+/g, "")
 
         let dp = gene.plot_coords.background_depths[slvl].map(function (v) { return v < -1000 ? NaN : v })
@@ -115,7 +115,7 @@ function get_depth_trace(gene) {
     var color_list = Plotly.d3.scale.category20().range()
     var i = -1;
 
-    for (sample in gene.plot_coords.depths) {
+    for (var sample in gene.plot_coords.depths) {
         i += 1
         var dp = gene.plot_coords.depths[sample]
         dp = dp.map(function (v) { return v < -1000 ? NaN : v })
@@ -199,7 +199,7 @@ function get_transcript_traces(gene, transcripts, plotRef) {
 
 function plot_per_base_depth(gene) {
 
-    gene_layout = get_gene_plot_layout(gene)
+    var gene_layout = get_gene_plot_layout(gene)
 
     var depth_traces = get_depth_trace(gene)
 
@@ -213,7 +213,6 @@ function plot_per_base_depth(gene) {
         gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
         gene_layout.yaxis3.tickvals = [...Array(gene.transcripts.length).keys()].map(f => -f)
         gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.data.transcript)
-        console.log(gene_layout.yaxis3)
 
     };
 
@@ -509,7 +508,7 @@ function draw_heatmap() {
 
         var row = []
 
-        for(s in stats) {
+        for(var s in stats) {
             if(i == 0){
                 x.push(s)
             }
@@ -522,7 +521,7 @@ function draw_heatmap() {
     z = z.reverse()
     y = y.reverse()
 
-    hlayout = {height: 25 * y.length, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
+    var hlayout = {height: 25 * y.length, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
                yaxis: {title: "Gene"}}
 
     //https://plotly.com/javascript/reference/heatmap/
@@ -534,7 +533,7 @@ var G = null
 
 //Load first region
 jQuery(document).ready(function () {
-    for(g of plot_data) {
+    for(var g of plot_data) {
         if (g.unioned_transcript.constructor.name == "Object") {
             g.unioned_transcript = new Transcript(g.unioned_transcript)
             g.transcripts = g.transcripts.map(t => new Transcript(t))

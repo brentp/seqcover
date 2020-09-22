@@ -2,6 +2,8 @@ import argparse
 import strformat
 import tables
 import sequtils
+import algorithm
+import json
 import hts/fai
 import tables
 import os
@@ -9,6 +11,7 @@ import d4
 import ./seqcoverpkg/utils
 import ./seqcoverpkg/transcript
 import ./seqcoverpkg/background
+import ./seqcoverpkg/seqcover_html
 
 proc get_pctile(path:string): int =
   let parts = path.split("_")
@@ -38,7 +41,7 @@ proc read_backgrounds(dir:string): TableRef[int, D4] =
 
 proc report_main() =
   let p = newParser("seqcover report"):
-    option("--backgrounds", default="", help="optional directory created with seqcover background")
+    option("--background", default="", help="optional path to d4 file created with seqcover background")
     option("--genes", default="", help="comma-delimited list of genes for initial report")
     option("--fasta", default="", help="required path to fai indexed fasta file")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
@@ -61,15 +64,17 @@ proc report_main() =
   if not fa.open(opts.fasta):
     quit "[seqcover] couldn't open fasta file"
 
-  var backgrounds = read_backgrounds(opts.backgrounds)
-  var sample_d4s = read_dps(opts.samples)
+  var backgrounds = read_d4s_to_table(@[opts.background])
+  var sample_d4s = read_d4s_to_table(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
   var gpt: seq[GenePlotData]
   for gene in get_genes(opts.genes.split(",")):
      var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
      gpt.add(pd)
 
+  gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
+  write_html("o.html", gpt)
 
 
 proc main() =
@@ -90,7 +95,7 @@ proc main() =
   if len(args) == 0 or args[0] in ["-h", "--help"]:
     stdout.write_line "Commands: "
     for k, v in dispatcher:
-      echo &"  {k:<13}:   {v.description}"
+      echo &"  {k:<19}:   {v.description}"
   else:
     echo &"unknown program '{args[0]}'"
     quit ""
