@@ -17,8 +17,10 @@ these formats can be output by [mosdepth](https://github.com/brentp/mosdepth) bu
 
 Generate a report:
 ```
-seqcover report PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,RHOBTB --background seqcover/seqcover_p5.d4 \
-		 --fasta $fasta samples/*.bed.gz
+seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,RHOBTB \
+		 --background seqcover/seqcover_p5.d4 \
+		 --fasta $fasta samples/*.bed.gz \
+		 -r my_genes_report.html
 ```
 
 Generate a background level:
