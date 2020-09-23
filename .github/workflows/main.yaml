@@ -45,9 +45,9 @@ jobs:
         export HTSLIB=dynamic
         sudo apt-get update
         sudo apt-get install git llvm curl wget libcurl4-openssl-dev
-        wget https://github.com/samtools/htslib/archive/1.10.2.tar.gz
-        tar xzf 1.10.2.tar.gz
-        cd htslib-1.10.2/
+        wget https://github.com/samtools/htslib/archive/1.11.tar.gz
+        tar xzf 1.11.tar.gz
+        cd htslib-1.11/
         sudo make -j4 install
         git clone https://github.com/38/d4-format
         cd d4-format
