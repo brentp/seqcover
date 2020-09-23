@@ -1,6 +1,6 @@
 var assert = require('assert');
 let data = require("./data.js")
-let transcript = require("../transcript.js")
+let transcript = require("../src/seqcoverpkg/transcript.js")
 
 let tr = new transcript.Transcript(data.tr_data)
 
