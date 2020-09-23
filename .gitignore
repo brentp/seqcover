@@ -1,3 +1,10 @@
 o.js
 tests/test_translate
 tests/test_transcript
+src/seqcover
+src/seqcoverpkg/background
+src/seqcoverpkg/transcript
+src/seqcoverpkg/typeenum
+src/seqcoverpkg/utils
+seqcover_report.html
+

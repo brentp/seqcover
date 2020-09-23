@@ -147,8 +147,7 @@ class Transcript {
     traces(y_offset, xs, gs) {
 
         function get_genomic_coord(x) {
-            if(isNaN(x)){ return NaN }
-            return gs[binary_search(xs, x)]
+            return isNaN(x) ? NaN : gs[binary_search(xs, x)]
         }
 
         var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
@@ -204,7 +203,6 @@ class Transcript {
             var lo_key = Object.keys(background_depths).sort((a, b) => {
                 return parseInt(a.replace(/^\D+/g, "")) - parseInt(b.replace(/^\D+/g, ""))
             })[0]
-            console.log("LOW:", lo_key)
             background_low = background_depths[lo_key] //.slice(xstart, xstop)
         }
         var H = Array(16384);
@@ -224,7 +222,7 @@ class Transcript {
                     N += 1
                 }
             }
-            result[sample] = {"low": lo, "lt_background": bg_lo}
+            result[sample] = {"low": lo, "lt-background": bg_lo}
             var mid = N * 0.5; // 50% of data below this number of samples.
             var j = 0
             var nc = H[j]

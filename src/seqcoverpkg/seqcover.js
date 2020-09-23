@@ -42,7 +42,7 @@ function get_gene_plot_layout(gene) {
         },
         yaxis: {
             title: "Depth",
-            domain: [0.55, 1],
+            domain: [0.28, 1],
             hovermode: 'closest',
         },
         yaxis2: {
@@ -54,7 +54,7 @@ function get_gene_plot_layout(gene) {
             tickvals: [0],
             ticktext: ["Merged<br>Transcript"],
             tickangle: 40,
-            domain: [0.0, 0.3],
+            domain: [0.0, 0.28],
             hovermode: 'closest',
         },
         hoverdistance: 100000,
@@ -64,15 +64,15 @@ function get_gene_plot_layout(gene) {
 
     //Add the 3rd layout if show transcripts is on
     if (showTranscripts) {
-        layout.yaxis.domain = [0.55, 0.90]
-        layout.yaxis2.domain = [0.4, 0.55]
+        layout.yaxis.domain = [0.28, 1]
+        layout.yaxis2.domain = [0.25, 0.28]
         layout.yaxis3 = {
             range: [0, 2],
             zeroline: false,
             showlegend: false,
-            domain: [0.0, 0.40],
+            domain: [0.0, 0.25],
             tickangle: 40,
-            ticktext: gene.transcripts.map(t => t.name),
+            ticktext: gene.transcripts.map(t => t.data.transcript),
             hovermode: 'closest',
         }
 
@@ -88,9 +88,14 @@ function get_gene_plot_layout(gene) {
 function get_depth_trace(gene) {
 
     var traces = [];
-    for(slvl in gene.plot_coords.background_depths){
+    var low_lvl = 10000;
+    var low_dp;
+    for(var slvl in gene.plot_coords.background_depths){
         let lvl = slvl.replace(/^\D+/g, "")
+
         let dp = gene.plot_coords.background_depths[slvl].map(function (v) { return v < -1000 ? NaN : v })
+        if (lvl < low_lvl) { low_dp = dp; low_lvl = lvl }
+
         var trace = {
             x: gene.plot_coords.x,
             text: gene.plot_coords.g,
@@ -107,19 +112,49 @@ function get_depth_trace(gene) {
 
 
 
-    for (sample in gene.plot_coords.depths) {
+    var color_list = Plotly.d3.scale.category20().range()
+    var i = -1;
+
+    for (var sample in gene.plot_coords.depths) {
+        i += 1
         var dp = gene.plot_coords.depths[sample]
         dp = dp.map(function (v) { return v < -1000 ? NaN : v })
-
+        var color = color_list[i];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scatter', mode: 'lines', name: sample, line: { width: 1 },
+            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.66, color:color_list[i]},
             hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
             hoverinfo: "text",
             yaxis: "y",
         };
 
         traces.push(trace);
+
+        // extract parts of this sample that are below the threshold and plot
+        // in a similar trace with wider line.
+        if(low_dp) {
+            var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 2.4, color: color_list[i]}, 
+                hoverinfo: "none",
+                connectgaps: false,
+                yaxis: "y",
+            };
+
+            dp.forEach((d, i) => {
+                //if(d < low_dp[i]) {
+                if(d < 40){
+                    low_trace.x.push(gene.plot_coords.x[i])
+                    low_trace.y.push(d)
+                } else {
+                    if(low_trace.x.length > 0 && !isNaN(low_trace.x[low_trace.x.length-1])){
+                        low_trace.x.push(gene.plot_coords.x[i])
+                        low_trace.y.push(null)
+                    }
+                }
+
+            })
+            traces.push(low_trace)
+
+        }
     };
 
     return (traces)
@@ -164,7 +199,7 @@ function get_transcript_traces(gene, transcripts, plotRef) {
 
 function plot_per_base_depth(gene) {
 
-    gene_layout = get_gene_plot_layout(gene)
+    var gene_layout = get_gene_plot_layout(gene)
 
     var depth_traces = get_depth_trace(gene)
 
@@ -177,8 +212,7 @@ function plot_per_base_depth(gene) {
         // each transcript is centered on the negative integers.
         gene_layout.yaxis3.range = [0.5, -(1 + transcript_traces.length / 3)]
         gene_layout.yaxis3.tickvals = [...Array(gene.transcripts.length).keys()].map(f => -f)
-        gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.name)
-        console.log(gene_layout.yaxis3)
+        gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.data.transcript)
 
     };
 
@@ -312,10 +346,6 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
 function generate_plots(selected_region) {
 
     var g = plot_data[selected_region]
-    if (g.unioned_transcript.constructor.name == "Object") {
-        g.unioned_transcript = new Transcript(g.unioned_transcript)
-    }
-    g.transcripts = g.transcripts.map(t => new Transcript(t))
 
     //Plot per base depths
     plot_per_base_depth(g)
@@ -448,37 +478,116 @@ function register_handlers() {
 
     });
 
-    //Turn on and off the transcript plot
-    // $("#showTranscripts").click(function () {
-
-    //     //Update bool value for transcripts
-    //     showTranscripts = !(showTranscripts)
-
-    //     // Update button text
-    //     // Update div class
-    //     if (showTranscripts) {
-    //         $(this).text("Hide Transcripts")
-    //         document.getElementById("gene_plot").className = "big_div";
-    //     } else {
-    //         $(this).text("Show Transcripts")
-    //         document.getElementById("gene_plot").className = "med_div";
-    //     };
-
-    //     //Redraw per base depth plot
-    //     //Index of plot in plot_data and gene data
-    //     var plotIndex = selected_region_index()
-    //     var selectedGene = plot_data[plotIndex];
-
-    //     //Plot per base depths
-    //     plot_per_base_depth(selectedGene)
-
-    // });
 }
+
+function draw_heatmap() {
+
+	let stat_metric = jQuery("#metric_select").val()
+
+    var low_depth_cutoff = 7;
+    var z = []
+    var x = [] // samples
+    var y = [] // genes
+
+	var is_cds = stat_metric.startsWith("cds")
+	var metric = stat_metric.split("_")[1]
+    for(var i = 0; i < plot_data.length; i++){
+        var g = plot_data[i]
+        y.push(g.symbol)
+
+        var transcript = g.unioned_transcript
+		var stats = null
+		if(is_cds) {
+			console.log("CDS")
+			var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
+			stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+		 } else {
+			console.log("transcript")
+			stats = transcript.stats([{start:0, stop:g.plot_coords.x.length}], g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+		 }
+
+        var row = []
+
+        for(var s in stats) {
+            if(i == 0){
+                x.push(s)
+            }
+            row.push(stats[s][metric])
+        }
+		console.log(row)
+        z.push(row)
+    }
+    // heatmap draws from bottom up by default
+    z = z.reverse()
+    y = y.reverse()
+
+    var hlayout = {height: 25 * y.length, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
+               yaxis: {title: "Gene"}}
+
+    //https://plotly.com/javascript/reference/heatmap/
+    return Plotly.newPlot("heatmap_plot", [{x: x, y:y, z:z,  type: 'heatmap', hoverongaps: false, colorscale: "Greys"}], hlayout)
+
+}
+
+var G = null
 
 //Load first region
 jQuery(document).ready(function () {
+    for(var g of plot_data) {
+        if (g.unioned_transcript.constructor.name == "Object") {
+            g.unioned_transcript = new Transcript(g.unioned_transcript)
+            g.transcripts = g.transcripts.map(t => new Transcript(t))
+        }
+    }
+
+
+	jQuery('#metric_select').on('change', function() { draw_heatmap().then(tie_heatmap_to_line_plot)}).trigger('change') 
+
+
+
     // register tooltips
     $('[data-toggle="tooltip"]').tooltip()
     generate_plots(0)
     register_handlers()
+
+
 })
+
+function tie_heatmap_to_line_plot() {	
+	// clicks on heatmap x-axis labels highlights sample in line plot
+	// https://issue.life/questions/44297012
+	var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
+	xticks.css({"cursor": "crosshair"})
+	var d = document.getElementById("gene_plot")
+
+	xticks.each(function(i) { 
+		//var item = Plotly.d3.select(this);
+		var item = jQuery(this);
+		item.attr('pointer-events', 'all'); 
+		item.attr('_i', i)
+		item.on("click", function(e) { 
+			var n = jQuery(this)
+			var undo = n.css("font-weight") == "800";
+			xticks.css({"font-weight": "400"})
+			var sample = n.text()
+			var ii = parseInt(item.attr("_i"))
+			var vals = null
+			var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
+			console.log("n_bg:", n_bg)
+			if(undo) {
+				vals = d.data.map((_, i) => 1)
+			} else {
+				n.css({"font-weight": "800"})
+				console.log("ii:", ii)
+				vals = d.data.map((t, i) => {
+					//console.log(t, i, xticks.length)
+					return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 *xticks.length + n_bg) ? 1: 0.15
+				})
+			}
+			Plotly.restyle(d, 'opacity', vals)
+
+			// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
+		}).on("unhover", function(e) {
+		})
+	})
+}

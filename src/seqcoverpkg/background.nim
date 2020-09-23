@@ -23,7 +23,7 @@ proc summarize_block(d4s: var seq[Cover], chrom:string, start:uint32, stop:uint3
     d4s[i].values(chrom, start, vals[i])
 
   if out_vals[0].len != vals[0].len:
-    for i in 0..out_vals.len:
+    for i in 0..<out_vals.len:
       out_vals[i].setLen(vals[0].len)
 
   let n_samples = d4s.len.float
@@ -106,15 +106,15 @@ proc generate_backgrounds(dps: var seq[Cover], output_dir: string, percentiles: 
   for o in outs.mitems:
     o.close()
 
-proc main() =
-  let p = newParser("seqcover background"):
+proc generate_background_main*() =
+  let p = newParser("seqcover generate-background"):
     option("-o", "--output-dir", help="directory for output", default="seqcover-backgrounds")
     option("-f", "--fasta", help="indexed fasta required for bed.gz files")
+    option("-p", "--percentile", default="5", help="percentile to extract from backgrounds")
     arg("samples", nargs= -1, help="per-base bed.gz files or d4 files or a glob of either to generate background")
 
-  let percentiles = @[5, 10, 50, 90, 95]
   var argv = commandLineParams()
-  if len(argv) > 0 and argv[0] == "background":
+  if len(argv) > 0 and argv[0] == "generate-background":
     argv = argv[1..argv.high]
   if len(argv) == 0:
     argv.add("--help")
@@ -124,6 +124,8 @@ proc main() =
   var opts = p.parse(argv)
   if opts.help:
     quit 0
+
+  let percentiles = @[parseInt(opts.percentile)]
 
   if opts.fasta != "":
     doAssert fai.open(opts.fasta), "[seqcover] error opening fasta file:" & opts.fasta
@@ -142,4 +144,4 @@ proc main() =
 
 
 when isMainModule:
-  main()
+  generate_background_main()

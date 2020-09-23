@@ -72,7 +72,8 @@
 <body>
     <!-- nav -->
     <div class="row bg-dark mx-0 p-1 sticky-top">
-        <div class="col-sm-3 col-md-2 col-lg-2"><a class="brand text-white text-decoration-none" href="#">seqcover</a>
+        <div class="col-sm-3 col-md-2 col-lg-2"><a class="brand text-white
+                text-decoration-none" href="https://github.com/brentp/seqcover">seqcover</a>
         </div>
         <div class="col-sm-12 col-md-10 col-lg-8">
             <div class="input-group flex-nowrap">
@@ -104,6 +105,21 @@
     <main role="main" class="container-fluid">
         <div class="container-fluid p-3">
             <div class="container-fluid p-1">
+                <div class="row"><!-- TODO: Joe to fix up CSS. -->
+                    <label for="metric_select">Select heatmap metric: </label>
+
+                    <select id="metric_select" name="metric_select">
+                        <!-- values must be of format {feature}_{stat} -->
+                        <option value="cds_mean">Mean CDS depth</option>
+                        <option value="transcript_mean">Mean transcript depth</option>
+                        <option value="cds_low">CDS Bases below {7}</option>
+                        <option value="cds_lt-background">CDS Bases below lower background percentile</option>
+                    </select>
+
+                    <div class="col-12">
+                        <div id="heatmap_plot"></div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-12">
                         <div id="gene_plot"></div>
@@ -112,12 +128,6 @@
                 <div class="row p-3">
                     <div class="table-responsive">
                         <table id="stats_table" class="table table-sm table-hover display nowrap w-100"></table>
-                    </div>
-                </div>
-                <div class="row pt-5">
-                    <div class="col-6" id="depth_dist_plot">
-                    </div>
-                    <div class="col-6" id="proportion_plot">
                     </div>
                 </div>
             </div>
@@ -144,10 +154,8 @@
     </div>
 </body>
 
-<script src="transcript.js?x=sxdf"></script>
-<script src="o.js?x=sdfxkl"></script>
+SEQCOVER_JAVASCRIPT
 
-<script src="seqcover.js?12345"></script>
 </body>
 
 </html>

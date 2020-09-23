@@ -71,8 +71,8 @@ describe('Transcript', function () {
           assert.equal(stats.sampleA.low, 0)
           assert.equal(stats.sampleB.low, 20)
 
-          assert.equal(stats.sampleA.lt_background, 0)
-          assert.equal(stats.sampleB.lt_background, 20)
+          assert.equal(stats.sampleA["lt-background"], 0)
+          assert.equal(stats.sampleB["lt-background"], 20)
 
 
 
