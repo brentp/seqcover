@@ -44,6 +44,7 @@ proc report_main() =
     option("--background", default="", help="optional path to d4 file created with seqcover background")
     option("--genes", default="", help="comma-delimited list of genes for initial report")
     option("--fasta", default="", help="required path to fai indexed fasta file")
+    option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
 
   var argv = commandLineParams()
@@ -74,7 +75,7 @@ proc report_main() =
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
-  write_html("o.html", gpt)
+  write_html(opts.report_path, gpt)
 
 
 proc main() =
