@@ -40,18 +40,23 @@ jobs:
         toolchain: stable
     - uses: actions-rs/cargo@v1
 
-    - name : install d4
+    - name : install htslib
       run: |
-        export HTSLIB=dynamic
         sudo apt-get update
         sudo apt-get install git llvm curl wget libcurl4-openssl-dev
         wget https://github.com/samtools/htslib/archive/1.11.tar.gz
         tar xzf 1.11.tar.gz
         cd htslib-1.11/
         sudo make -j4 install
+
+    - name : install d4
+      run: |
+        export HTSLIB=dynamic
         git clone https://github.com/38/d4-format
         cd d4-format
-        cargo build --release
+        rustup target add x86_64-unknown-linux-musl
+        sudo ln -s /usr/bin/gcc /usr/bin/musl-gcc
+        cargo build --release --target=x86_64-unknown-linux-musl
         sudo cp ../d4-format/target/release/libd4binding.* /usr/local/lib
         sudo cp ./d4binding/include/d4.h /usr/local/include/
 
