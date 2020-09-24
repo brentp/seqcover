@@ -76,6 +76,7 @@ proc report_main() =
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
   write_html(opts.report_path, gpt)
+  stderr.write_line &"[seqcover] wrote report to:{opts.report_path}"
 
 
 proc main() =

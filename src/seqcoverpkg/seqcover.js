@@ -83,6 +83,7 @@ function get_gene_plot_layout(gene) {
 
 };
 
+var color_list = Plotly.d3.scale.category20().range()
 
 //Get a by position trace per sample of depth
 function get_depth_trace(gene) {
@@ -112,7 +113,6 @@ function get_depth_trace(gene) {
 
 
 
-    var color_list = Plotly.d3.scale.category20().range()
     var i = -1;
 
     for (var sample in gene.plot_coords.depths) {
@@ -122,7 +122,7 @@ function get_depth_trace(gene) {
         var color = color_list[i];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.66, color:color_list[i]},
+            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color:color_list[i]},
             hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
             hoverinfo: "text",
             yaxis: "y",
@@ -133,15 +133,14 @@ function get_depth_trace(gene) {
         // extract parts of this sample that are below the threshold and plot
         // in a similar trace with wider line.
         if(low_dp) {
-            var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 2.4, color: color_list[i]}, 
+            var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 3.0, color: color_list[i]}, 
                 hoverinfo: "none",
                 connectgaps: false,
                 yaxis: "y",
             };
 
             dp.forEach((d, i) => {
-                //if(d < low_dp[i]) {
-                if(d < 40){
+                if(d < low_dp[i]) {
                     low_trace.x.push(gene.plot_coords.x[i])
                     low_trace.y.push(d)
                 } else {
@@ -521,7 +520,7 @@ function draw_heatmap() {
     z = z.reverse()
     y = y.reverse()
 
-    var hlayout = {height: 25 * y.length, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
+    var hlayout = {height: 25 * y.length + 60, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
                yaxis: {title: "Gene"}}
 
     //https://plotly.com/javascript/reference/heatmap/
@@ -563,6 +562,8 @@ function tie_heatmap_to_line_plot() {
 	xticks.each(function(i) { 
 		//var item = Plotly.d3.select(this);
 		var item = jQuery(this);
+        item.css({"fill": color_list[i]})
+
 		item.attr('pointer-events', 'all'); 
 		item.attr('_i', i)
 		item.on("click", function(e) { 
@@ -573,7 +574,7 @@ function tie_heatmap_to_line_plot() {
 			var ii = parseInt(item.attr("_i"))
 			var vals = null
 			var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
-			console.log("n_bg:", n_bg)
+			//console.log("n_bg:", n_bg)
 			if(undo) {
 				vals = d.data.map((_, i) => 1)
 			} else {
