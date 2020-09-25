@@ -520,7 +520,7 @@ function draw_heatmap() {
     z = z.reverse()
     y = y.reverse()
 
-    var hlayout = {height: 25 * y.length + 60, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
+    var hlayout = {height: 28 * y.length + 60, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
                yaxis: {title: "Gene"}}
 
     //https://plotly.com/javascript/reference/heatmap/
