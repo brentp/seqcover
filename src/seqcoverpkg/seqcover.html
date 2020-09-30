@@ -9,31 +9,14 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" rel="stylesheet">
-    <link href="https://raw.githack.com/ttskch/select2-bootstrap4-theme/master/dist/select2-bootstrap4.css"
-        rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.css" rel="stylesheet"/>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
-    <link rel="stylesheet" type="text/css"
-        href="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.css" />
-
-    <!-- bootstrap and deps -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
-        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
-        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
-        crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
-        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
-        crossorigin="anonymous"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
-    <script type="text/javascript"
-        src="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.js"></script>
+    <script src="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.js"></script>
 
     <style>
         body {
@@ -47,53 +30,32 @@
         }
 
         .brand {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-family: 'Raleway', sans-serif;
         }
 
-        .select-title {
-            font-weight: bold;
+        .yaxislayer-above {
+            cursor: pointer;
+            pointer-events: all;
         }
 
-        .select-location {
-            /* font-size: 0.9rem; */
-            font-weight: lighter;
+        .selected_label {
+            font-weight: 800;
         }
 
-        .select2-selection__rendered>div {
-            position: relative;
-            display: flex;
-            align-items: stretch;
-            width: 100%;
+        .unselected_label {
+            font-weight: 400;
         }
     </style>
 </head>
 
 <body>
     <!-- nav -->
-    <div class="row bg-dark mx-0 p-1 sticky-top">
+    <div class="row bg-dark mx-0 p-1">
         <div class="col-sm-3 col-md-2 col-lg-2"><a class="brand text-white
                 text-decoration-none" href="https://github.com/brentp/seqcover">seqcover</a>
         </div>
         <div class="col-sm-12 col-md-10 col-lg-8">
-            <div class="input-group flex-nowrap">
-                <div class="input-group-prepend">
-                    <span class="input-group-text">Region</span>
-                </div>
-                <select class="form-control" id="region-select"></select>
-                <div class="input-group-append">
-                    <button class="btn btn-secondary" type="button" id="btn-previous" title="Previous region (&#8592;)"
-                        data-toggle="tooltip"><i class="fas fa-caret-left"></i></button>
-                </div>
-                <div class="input-group-append">
-                    <button class="btn btn-secondary" type="button" id="btn-next" title="Next region (&#8594;)"
-                        data-toggle="tooltip"><i class="fas fa-caret-right"></i></button>
-                </div>
-                <div class="input-group-append">
-                    <button class="btn btn-secondary" type="button" id="btn-copy-region" title="Copy selected region"
-                        data-toggle="tooltip"><i class="fas fa-copy"></i></button>
-                </div>
-            </div>
         </div>
         <div class="col-sm-12 col-md-12 col-lg-2 d-flex align-items-center justify-content-end" id="meta-header">
             <!-- update span `genome-build` from plot_data -->
@@ -103,59 +65,40 @@
         </div>
     </div>
     <main role="main" class="container-fluid">
-        <div class="container-fluid p-3">
-            <div class="container-fluid p-1">
-                <div class="row"><!-- TODO: Joe to fix up CSS. -->
-                    <label for="metric_select">Select heatmap metric: </label>
 
-                    <select id="metric_select" name="metric_select">
-                        <!-- values must be of format {feature}_{stat} -->
+        <div class="row pt-2 bg-light">
+            <div class="col-md-5 col-lg-7">
+                <h5>Coverage summary</h5>
+            </div>
+            <div class="col-sm-12 col-md-7 col-lg-5 d-flex align-items-center">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Summary metric</span>
+                    </div>
+                    <select class="form-control" id="metric_select">
                         <option value="cds_mean">Mean CDS depth</option>
                         <option value="transcript_mean">Mean transcript depth</option>
-                        <option value="cds_low">CDS Bases below {7}</option>
+                        <option value="cds_low">CDS Bases below <span id="cds-bases-below">7</span></option>
                         <option value="cds_lt-background">CDS Bases below lower background percentile</option>
                     </select>
-
-                    <div class="col-12">
-                        <div id="heatmap_plot"></div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12">
-                        <div id="gene_plot"></div>
-                    </div>
-                </div>
-                <div class="row p-3">
-                    <div class="table-responsive">
-                        <table id="stats_table" class="table table-sm table-hover display nowrap w-100"></table>
-                    </div>
                 </div>
             </div>
-    </main>
-
-    <div class="container-fluid">
-        <div id="hoverInfo"></div>
-        <div class="row pt-3">
-            <div class="col-6">
-                <h5>Gene Description:</h5>
-                <p id="gene_description">Description</p>
+            <div class="col-12">
+                <div id="heatmap_plot"></div>
             </div>
         </div>
-        <!-- <div class="row pb-3">
-            <div class="col-sm-3">
+
+        <div class="row">
+            <div class="col-12"><div id="gene_plot"></div></div>
+        </div>
+        <div class="row p-3">
+            <div class="table-responsive">
+                <table id="stats_table" class="table table-sm table-hover display nowrap w-100"></table>
             </div>
-            <div class="col-sm-4">
-                <button type="button" class="btn btn-outline-primary" data-toggle="button" id="showTranscripts"
-                    aria-pressed="false" autocomplete="false">
-                    Show Transcripts
-                </button>
-            </div>
-        </div> -->
-    </div>
+        </div>
+    </main>
 </body>
 
 SEQCOVER_JAVASCRIPT
-
-</body>
 
 </html>
