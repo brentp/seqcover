@@ -21,7 +21,7 @@ function get_gene_plot_layout(gene) {
         autosize: true,
         height: gene_plot_height,
         margin: { t: 10, r: 0, b: 30 },
-        hovermode: 'closest',
+        hovermode: 'x',
         xaxis: {
             tickvals: range(gene.plot_coords.x[0], gene.plot_coords.x[gene.plot_coords.x.length - 10], step),
             ticktext: range(gene.plot_coords.g[0], gene.plot_coords.g[gene.plot_coords.x.length - 10], step),
@@ -53,6 +53,7 @@ function get_gene_plot_layout(gene) {
 
     return (layout)
 }
+const HOVER_TEMPLATE = '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}';
 
 //Get a by position trace per sample of depth
 function get_depth_trace(gene) {
@@ -91,8 +92,9 @@ function get_depth_trace(gene) {
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
             type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color: color_list[i] },
-            hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
-            hoverinfo: "text",
+            hovertemplate: HOVER_TEMPLATE,
+            hoverdistance: 1000,
+            hoverinfo: "none",
             yaxis: "y",
             tracktype: "sample",
         };
@@ -263,9 +265,7 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
         table.push(row)
         //let depths = gene.plot_coords.depths[sample];
         //means[sample] = mean(depths.slice(start_idx, stop_idx)).toPrecision(4)
-        //hoverInfo.innerHTML += `<li><b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br></li>`
     }
-    //hoverInfo.innerHTML += "</ul>"
     if (datatable) {
         datatable.clear()
         datatable.rows.add(table)
@@ -294,8 +294,7 @@ function highlight_sample(sample) {
         }
     })
 
-    Plotly.restyle(d, 'opacity', vals.map(i => i[0]))
-    Plotly.restyle(d, 'line.width', vals.map(i => i[1]))
+    Plotly.restyle(d, {'opacity': vals.map(i => i[0]), 'line.width': vals.map(i => i[1]), 'hovertemplate': vals.map(i => i[1] > 0.8 ? HOVER_TEMPLATE: null)})
 }
 
 function tie_heatmap_to_line_plot() {
@@ -317,8 +316,7 @@ function tie_heatmap_to_line_plot() {
             var vals = null
             if (undo) {
                 vals = d.data.map((t, i) => [1, (t.tracktype == 'sample' || t.tracktype == 'background') ? 0.36 : undefined])
-                Plotly.restyle(d, 'opacity', vals.map(i => i[0]))
-                Plotly.restyle(d, 'line.width', vals.map(i => i[1]))
+                Plotly.restyle(d, {'opacity': vals.map(i => i[0]), 'line.width': vals.map(i => i[1]), 'hovertemplate': vals.map(i => HOVER_TEMPLATE)})
             } else {
                 n.attr('class', 'selected_label')
                 highlight_sample(sample)
