@@ -17,7 +17,7 @@ var showTranscripts = true;
 function range(start, end, step = 1) {
     const len = Math.floor((end - start) / step) + 1
     return Array(len).fill().map((_, idx) => start + (idx * step))
-  }
+}
 
 //by base depth plot layout
 function get_gene_plot_layout(gene) {
@@ -91,7 +91,7 @@ function get_depth_trace(gene) {
     var traces = [];
     var low_lvl = 10000;
     var low_dp;
-    for(var slvl in gene.plot_coords.background_depths){
+    for (var slvl in gene.plot_coords.background_depths) {
         let lvl = slvl.replace(/^\D+/g, "")
 
         let dp = gene.plot_coords.background_depths[slvl].map(function (v) { return v < -1000 ? NaN : v })
@@ -102,9 +102,9 @@ function get_depth_trace(gene) {
             text: gene.plot_coords.g,
             y: dp,
             type: "scatter",
-            mode:"lines",
+            mode: "lines",
             name: `Percentile: ${lvl}`,
-            line: {width: 1, /* dash: "dot", */ color: 'rgb(200, 200, 200)' },
+            line: { width: 1, /* dash: "dot", */ color: 'rgb(200, 200, 200)' },
             yaxis: "y",
             hoverinfo: "skip",
         }
@@ -122,7 +122,7 @@ function get_depth_trace(gene) {
         var color = color_list[i];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color:color_list[i]},
+            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color: color_list[i] },
             hovertemplate: '<b>position</b>:%{text}<br><b>depth</b>:%{y}<br>(debug) x: %{x}',
             hoverinfo: "text",
             yaxis: "y",
@@ -132,19 +132,20 @@ function get_depth_trace(gene) {
 
         // extract parts of this sample that are below the threshold and plot
         // in a similar trace with wider line.
-        if(low_dp) {
-            var low_trace = { x: [], y: [], text: [], type: 'scatter', mode:"lines", name: sample, line: {width: 3.0, color: color_list[i]}, 
+        if (low_dp) {
+            var low_trace = {
+                x: [], y: [], text: [], type: 'scatter', mode: "lines", name: sample, line: { width: 3.0, color: color_list[i] },
                 hoverinfo: "none",
                 connectgaps: false,
                 yaxis: "y",
             };
 
             dp.forEach((d, i) => {
-                if(d < low_dp[i]) {
+                if (d < low_dp[i]) {
                     low_trace.x.push(gene.plot_coords.x[i])
                     low_trace.y.push(d)
                 } else {
-                    if(low_trace.x.length > 0 && !isNaN(low_trace.x[low_trace.x.length-1])){
+                    if (low_trace.x.length > 0 && !isNaN(low_trace.x[low_trace.x.length - 1])) {
                         low_trace.x.push(gene.plot_coords.x[i])
                         low_trace.y.push(null)
                     }
@@ -294,10 +295,10 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var stop_idx = binary_search(gene.plot_coords.x, overlaps[0].stop)
 
     let low_depth_cutoff = 7; // TODO: get this from user-form input.
-    var selection_stats = transcript.stats([{start:start_idx, stop:stop_idx}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
+    var selection_stats = transcript.stats([{ start: start_idx, stop: stop_idx }], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
     console.log(selection_stats)
 
-    var tx_stats = transcript.stats([{start:0, stop:gene.plot_coords.x.length}], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
+    var tx_stats = transcript.stats([{ start: 0, stop: gene.plot_coords.x.length }], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
 
     // example of how to get stats for all CDSs. NOTE: this should only be done
     // once per gene and result cached.
@@ -310,8 +311,8 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]
 
-    var columns = [{title:"sample"}, {title:"transcript mean"}, {title:"CDS mean"}, {title:"selection mean"}, 
-                   {title: "transcript bases < lower"}, {title: "CDS bases < lower"}, {title: "selection bases < lower"}];
+    var columns = [{ title: "sample" }, { title: "transcript mean" }, { title: "CDS mean" }, { title: "selection mean" },
+    { title: "transcript bases < lower" }, { title: "CDS bases < lower" }, { title: "selection bases < lower" }];
     var table = []
 
     //var means = {}
@@ -324,12 +325,12 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
         //hoverInfo.innerHTML += `<li><b>${sample}</b> mean depth for ${overlaps[0].type.toString()}: ${means[sample]}<br></li>`
     }
     //hoverInfo.innerHTML += "</ul>"
-    if(datatable) {
+    if (datatable) {
         datatable.clear()
         datatable.rows.add(table)
         datatable.draw()
     } else {
-        datatable = jQuery('table#stats_table').DataTable({data:table, columns:columns})
+        datatable = jQuery('table#stats_table').DataTable({ data: table, columns: columns })
     }
 
 
@@ -481,50 +482,52 @@ function register_handlers() {
 
 function draw_heatmap() {
 
-	let stat_metric = jQuery("#metric_select").val()
+    let stat_metric = jQuery("#metric_select").val()
 
     var low_depth_cutoff = 7;
     var z = []
     var x = [] // samples
     var y = [] // genes
 
-	var is_cds = stat_metric.startsWith("cds")
-	var metric = stat_metric.split("_")[1]
-    for(var i = 0; i < plot_data.length; i++){
+    var is_cds = stat_metric.startsWith("cds")
+    var metric = stat_metric.split("_")[1]
+    for (var i = 0; i < plot_data.length; i++) {
         var g = plot_data[i]
         y.push(g.symbol)
 
         var transcript = g.unioned_transcript
-		var stats = null
-		if(is_cds) {
-			console.log("CDS")
-			var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
-			stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
-		 } else {
-			console.log("transcript")
-			stats = transcript.stats([{start:0, stop:g.plot_coords.x.length}], g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
-		 }
+        var stats = null
+        if (is_cds) {
+            console.log("CDS")
+            var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
+            stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+        } else {
+            console.log("transcript")
+            stats = transcript.stats([{ start: 0, stop: g.plot_coords.x.length }], g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
+        }
 
         var row = []
 
-        for(var s in stats) {
-            if(i == 0){
+        for (var s in stats) {
+            if (i == 0) {
                 x.push(s)
             }
             row.push(stats[s][metric])
         }
-		console.log(row)
+        console.log(row)
         z.push(row)
     }
     // heatmap draws from bottom up by default
     z = z.reverse()
     y = y.reverse()
 
-    var hlayout = {height: 28 * y.length + 60, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: {title: "Sample"},
-               yaxis: {title: "Gene"}}
+    var hlayout = {
+        height: 28 * y.length + 60, title: jQuery("#metric_select option:selected").text(), autosize: true, xaxis: { title: "Sample" },
+        yaxis: { title: "Gene" }
+    }
 
     //https://plotly.com/javascript/reference/heatmap/
-    return Plotly.newPlot("heatmap_plot", [{x: x, y:y, z:z,  type: 'heatmap', hoverongaps: false, colorscale: "Greys"}], hlayout)
+    return Plotly.newPlot("heatmap_plot", [{ x: x, y: y, z: z, type: 'heatmap', hoverongaps: false, colorscale: "Greys" }], hlayout)
 
 }
 
@@ -532,7 +535,7 @@ var G = null
 
 //Load first region
 jQuery(document).ready(function () {
-    for(var g of plot_data) {
+    for (var g of plot_data) {
         if (g.unioned_transcript.constructor.name == "Object") {
             g.unioned_transcript = new Transcript(g.unioned_transcript)
             g.transcripts = g.transcripts.map(t => new Transcript(t))
@@ -540,7 +543,7 @@ jQuery(document).ready(function () {
     }
 
 
-	jQuery('#metric_select').on('change', function() { draw_heatmap().then(tie_heatmap_to_line_plot)}).trigger('change') 
+    jQuery('#metric_select').on('change', function () { draw_heatmap().then(tie_heatmap_to_line_plot) }).trigger('change')
 
 
 
@@ -552,43 +555,43 @@ jQuery(document).ready(function () {
 
 })
 
-function tie_heatmap_to_line_plot() {	
-	// clicks on heatmap x-axis labels highlights sample in line plot
-	// https://issue.life/questions/44297012
-	var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
-	xticks.css({"cursor": "crosshair"})
-	var d = document.getElementById("gene_plot")
+function tie_heatmap_to_line_plot() {
+    // clicks on heatmap x-axis labels highlights sample in line plot
+    // https://issue.life/questions/44297012
+    var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
+    xticks.css({ "cursor": "crosshair" })
+    var d = document.getElementById("gene_plot")
 
-	xticks.each(function(i) { 
-		//var item = Plotly.d3.select(this);
-		var item = jQuery(this);
-        item.css({"fill": color_list[i]})
+    xticks.each(function (i) {
+        //var item = Plotly.d3.select(this);
+        var item = jQuery(this);
+        item.css({ "fill": color_list[i] })
 
-		item.attr('pointer-events', 'all'); 
-		item.attr('_i', i)
-		item.on("click", function(e) { 
-			var n = jQuery(this)
-			var undo = n.css("font-weight") == "800";
-			xticks.css({"font-weight": "400"})
-			var sample = n.text()
-			var ii = parseInt(item.attr("_i"))
-			var vals = null
-			var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
-			//console.log("n_bg:", n_bg)
-			if(undo) {
-				vals = d.data.map((_, i) => 1)
-			} else {
-				n.css({"font-weight": "800"})
-				console.log("ii:", ii)
-				vals = d.data.map((t, i) => {
-					//console.log(t, i, xticks.length)
-					return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 *xticks.length + n_bg) ? 1: 0.15
-				})
-			}
-			Plotly.restyle(d, 'opacity', vals)
+        item.attr('pointer-events', 'all');
+        item.attr('_i', i)
+        item.on("click", function (e) {
+            var n = jQuery(this)
+            var undo = n.css("font-weight") == "800";
+            xticks.css({ "font-weight": "400" })
+            var sample = n.text()
+            var ii = parseInt(item.attr("_i"))
+            var vals = null
+            var n_bg = Object.keys(plot_data[0].plot_coords.background_depths).length
+            //console.log("n_bg:", n_bg)
+            if (undo) {
+                vals = d.data.map((_, i) => 1)
+            } else {
+                n.css({ "font-weight": "800" })
+                console.log("ii:", ii)
+                vals = d.data.map((t, i) => {
+                    //console.log(t, i, xticks.length)
+                    return ((i == 2 * ii + n_bg) || (i == 2 * ii + 1 + n_bg) || (i < n_bg)) || (i >= 2 * xticks.length + n_bg) ? 1 : 0.15
+                })
+            }
+            Plotly.restyle(d, 'opacity', vals)
 
-			// see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
-		}).on("unhover", function(e) {
-		})
-	})
+            // see: https://codepen.io/etpinard/pen/RQQqzq?editors=0010
+        }).on("unhover", function (e) {
+        })
+    })
 }
