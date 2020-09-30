@@ -20,7 +20,7 @@ function binary_search(A, v) {
 // enum
 const FeatureType = Object.freeze({
     EXON: "exon",
-    CDS:  "CDS",
+    CDS: "CDS",
     UTR: "UTR",
     TRANSCRIPT: "transcript"
 })
@@ -30,36 +30,36 @@ const aesthetics = {
     TRANSCRIPT_WIDTH: 4,
     EXON_COLOR: "rgba(105,105,105, 0.6)",
     EXON_WIDTH: 9,
-    CDS_COLOR:'rgb(195, 155, 155)',
+    CDS_COLOR: 'rgb(195, 155, 155)',
     CDS_WIDTH: 12,
 }
 
 class Feature {
-  constructor(start, stop, type, transcript) {
-      this.start = start
-      this.stop = stop
-      this.type = type
-      this.transcript = transcript
-  }
-  get coding() {
-      return this.type == FeatureType.CDS
-  }
+    constructor(start, stop, type, transcript) {
+        this.start = start
+        this.stop = stop
+        this.type = type
+        this.transcript = transcript
+    }
+    get coding() {
+        return this.type == FeatureType.CDS
+    }
 
 
-  hoverinfo(xs, gs) {
-      // xs is plot coordinates, gs is genome coordinates
-      // get genomic coordinate by finding index of plot-coord
-      // and then looking it up in genomic array
-      var start = gs[binary_search(xs, this.start)]
-      var stop = gs[binary_search(xs, this.stop)]
-      return {
-          "transcript": this.transcript.data.transcript,
-          "strand": this.transcript.strand,
-          "start": start,
-          "stop": stop,
-          "type": this.type.toString()
-      }
-  }
+    hoverinfo(xs, gs) {
+        // xs is plot coordinates, gs is genome coordinates
+        // get genomic coordinate by finding index of plot-coord
+        // and then looking it up in genomic array
+        var start = gs[binary_search(xs, this.start)]
+        var stop = gs[binary_search(xs, this.stop)]
+        return {
+            "transcript": this.transcript.data.transcript,
+            "strand": this.transcript.strand,
+            "start": start,
+            "stop": stop,
+            "type": this.type.toString()
+        }
+    }
 }
 
 class Transcript {
@@ -106,7 +106,7 @@ class Transcript {
         result.push(new Feature(this.data.txstart, this.data.cdsstart, FeatureType.UTR, that))
         this.data.position.forEach((exon, i) => {
             result.push(new Feature(exon[0], exon[1], FeatureType.EXON, that))
-            if(exon[1] < this.data.cdsstart || exon[0] > this.data.cdsend) {
+            if (exon[1] < this.data.cdsstart || exon[0] > this.data.cdsend) {
                 // continue
             } else {
                 result.push(new Feature(Math.max(this.data.cdsstart, exon[0]), Math.min(this.data.cdsend, exon[1]), FeatureType.CDS, that))
@@ -122,23 +122,23 @@ class Transcript {
         // return parts() that overlap with this position
         let that = this
         var result = []
-        if(position < this.txstart || position > this.txend) { return result}
-        if(position < this.cdsstart) { result.push(new Feature(this.data.txstart, this.data.cdsstart, FeatureType.UTR, that)) }
+        if (position < this.txstart || position > this.txend) { return result }
+        if (position < this.cdsstart) { result.push(new Feature(this.data.txstart, this.data.cdsstart, FeatureType.UTR, that)) }
         this.data.position.forEach((exon, i) => {
             if (exon[0] > position || exon[1] < position) {
                 return
             }
             result.push(new Feature(exon[0], exon[1], FeatureType.EXON, that))
-            if(exon[1] < that.data.cdsstart || exon[0] > that.data.cdsend) {
+            if (exon[1] < that.data.cdsstart || exon[0] > that.data.cdsend) {
                 // continue
             } else {
                 var f = new Feature(Math.max(this.data.cdsstart, exon[0]), Math.min(this.data.cdsend, exon[1]), FeatureType.CDS, that)
-                if(f.stop - f.start > 0){
+                if (f.stop - f.start > 0) {
                     result.push(f)
                 }
             }
         })
-        if(position >= this.cdsend) {
+        if (position >= this.cdsend) {
             result.push(new Feature(this.data.cdsend, this.data.txend, FeatureType.UTR, that))
         }
         return result;
@@ -150,19 +150,23 @@ class Transcript {
             return isNaN(x) ? NaN : gs[binary_search(xs, x)]
         }
 
-        var transcript_trace = {name: this.data.transcript, x: [this.data.txstart, this.data.txend], y:[y_offset, y_offset],
-             type: "scatter", mode: "lines", showlegend: false,
-             hoverinfo: "none",
-             line: { color: aesthetics.TRANSCRIPT_COLOR, width: aesthetics.TRANSCRIPT_WIDTH}}
+        var transcript_trace = {
+            name: this.data.transcript, x: [this.data.txstart, this.data.txend], y: [y_offset, y_offset],
+            type: "scatter", mode: "lines", showlegend: false,
+            hoverinfo: "none",
+            line: { color: aesthetics.TRANSCRIPT_COLOR, width: aesthetics.TRANSCRIPT_WIDTH }
+        }
 
         let parts = this.parts()
 
-        var exon_trace = {name: this.data.transcript + " exons", x: [], y:[],
-             type: "scatter", mode: "lines", showlegend: false,
-             hoverinfo: "none",
-             line: { color: aesthetics.EXON_COLOR, width: aesthetics.EXON_WIDTH}}
+        var exon_trace = {
+            name: this.data.transcript + " exons", x: [], y: [],
+            type: "scatter", mode: "lines", showlegend: false,
+            hoverinfo: "none",
+            line: { color: aesthetics.EXON_COLOR, width: aesthetics.EXON_WIDTH }
+        }
         parts.filter(p => p.type == FeatureType.EXON).forEach(e => {
-            if((exon_trace.x.length) > 0) {
+            if ((exon_trace.x.length) > 0) {
                 exon_trace.x.push(NaN)
                 exon_trace.y.push(y_offset)
             }
@@ -170,12 +174,14 @@ class Transcript {
             exon_trace.y.push(y_offset, y_offset)
         })
 
-        var cds_trace = {name: this.data.transcript + " CDS", x: [], y:[],
-             type: "scatter", mode: "lines", showlegend: false,
-             hoverinfo: "none",
-             line: { color: aesthetics.CDS_COLOR, width: aesthetics.CDS_WIDTH}}
+        var cds_trace = {
+            name: this.data.transcript + " CDS", x: [], y: [],
+            type: "scatter", mode: "lines", showlegend: false,
+            hoverinfo: "none",
+            line: { color: aesthetics.CDS_COLOR, width: aesthetics.CDS_WIDTH }
+        }
         parts.filter(p => p.type == FeatureType.CDS).forEach(c => {
-            if((cds_trace.x.length) > 0) {
+            if ((cds_trace.x.length) > 0) {
                 cds_trace.x.push(NaN)
                 cds_trace.y.push(y_offset)
             }
@@ -184,7 +190,7 @@ class Transcript {
         })
 
         var result = [transcript_trace, exon_trace, cds_trace]
-        result.forEach(trace =>  {
+        result.forEach(trace => {
             trace.genome_x = trace.x.map(x => get_genomic_coord(x))
         })
         return result
@@ -197,7 +203,7 @@ class Transcript {
         var result = {}
         var background_low;
         // handle missing or undefined backgrounds
-        if(background_depths != undefined && background_depths != {}){
+        if (background_depths != undefined && background_depths != {}) {
             // background depths might hvae string keys like p5, p95. so we sort to
             // get the lowest value.
             var lo_key = Object.keys(background_depths).sort((a, b) => {
@@ -206,27 +212,27 @@ class Transcript {
             background_low = background_depths[lo_key] //.slice(xstart, xstop)
         }
         var H = Array(16384);
-        for(var sample in depths) {
+        for (var sample in depths) {
             var S = 0; var N = 0; var lo = 0; var bg_lo = 0;
             H.fill(0);
             var dps = depths[sample];
 
-            for(var rng of xranges) {
-                for(var i=rng.start; i<rng.stop; i++){
+            for (var rng of xranges) {
+                for (var i = rng.start; i < rng.stop; i++) {
                     let d = dps[i]
-                    if(d < 0 || isNaN(d)){ continue;}
+                    if (d < 0 || isNaN(d)) { continue; }
                     lo += (d < low_depth_cutoff);
                     bg_lo += d < background_low[i];
-                    H[Math.min(d, H.length-1)] += 1;
+                    H[Math.min(d, H.length - 1)] += 1;
                     S += d;
                     N += 1
                 }
             }
-            result[sample] = {"low": lo, "lt-background": bg_lo}
+            result[sample] = { "low": lo, "lt-background": bg_lo }
             var mid = N * 0.5; // 50% of data below this number of samples.
             var j = 0
             var nc = H[j]
-            while(nc < mid) {
+            while (nc < mid) {
                 j += 1
                 nc += H[j]
             }
@@ -244,7 +250,7 @@ try {
     exports.FeatureType = FeatureType
 
 
-    if(require.main === module) {
+    if (require.main === module) {
         // xs and gs data for testing.
         let data = require("./test/data.js")
         let tr = new Transcript(data.tr_data)
