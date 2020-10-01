@@ -8,6 +8,43 @@ const color_list = [
     "#59A14F", "#EDC949", "#AF7AA1", "#FF9DA7", "#9C755F", "#BAB0AB",
 ]
 
+
+// https://stackoverflow.com/a/4198132
+function getHashParams() {
+
+    var hashParams = {};
+    var e,
+        a = /\+/g,  // Regex for replacing addition symbol with a space
+        r = /([^&;=]+)=?([^&;]*)/g,
+        d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+        q = window.location.hash.substring(1);
+
+    while (e = r.exec(q))
+       hashParams[d(e[1])] = d(e[2]);
+
+    return hashParams;
+}
+
+function setHashParams(obj) {
+    var old = getHashParams();
+    for(var k in obj){
+        if(obj[k] == null){
+            delete old[k];
+        } else {
+          old[k] = obj[k]
+        }
+    }
+    var str = "#";
+    for(var k in old){
+        str += `${k}=${old[k]}&`
+    }
+
+    window.location.hash = str.slice(0, -1); // drop final '&'
+    return old;
+
+}
+
+
 // https://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer/8069367
 function range(start, end, step = 1) {
     const len = Math.floor((end - start) / step) + 1
@@ -150,6 +187,7 @@ function get_transcript_traces(gene, transcripts, plotRef) {
 
 
 function plot_per_base_depth(gene) {
+    setHashParams({'gene': gene.symbol})
     let gene_layout = get_gene_plot_layout(gene)
     let depth_traces = get_depth_trace(gene)
     let unioned_transcript_traces = get_transcript_traces(gene, [gene.unioned_transcript], "y2")
@@ -276,6 +314,7 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
 }
 
 function highlight_sample(sample) {
+    setHashParams({'sample': sample})
     let d = document.getElementById("gene_plot")
     let vals = d.data.map((t, i) => {
         if (t.tracktype == "background") {
@@ -314,7 +353,8 @@ function tie_heatmap_to_line_plot() {
             var vals = null
             if (undo) {
                 vals = d.data.map((t, i) => [1, (t.tracktype == 'sample' || t.tracktype == 'background') ? 0.36 : undefined])
-                Plotly.restyle(d, {'opacity': vals.map(i => i[0]), 'line.width': vals.map(i => i[1]), 'hovertemplate': vals.map(i => HOVER_TEMPLATE)})
+                Plotly.restyle(d, {'opacity': vals.map(i => i[0]), 'line.width': vals.map(i => i[1]), 'hovertemplate': d.data.map((t) => t.tracktype == "sample" ? HOVER_TEMPLATE: null)})
+                setHashParams({'sample': null})
             } else {
                 n.attr('class', 'selected_label')
                 highlight_sample(sample)
@@ -406,6 +446,8 @@ function draw_heatmap() {
         let gene_idx = plot_data.length - selected_gene_idx - 1
         let selected_sample_idx = click_data.points[0].pointIndex[1]
         let sample = click_data.points[0].x
+        let gene = click_data.points[0].y
+
 
         // y-axis ticks
         let yticks = jQuery("#heatmap_plot .yaxislayer-above > .ytick > text")
@@ -428,6 +470,7 @@ function draw_heatmap() {
             // only redraw if it's a new gene
             plot_per_base_depth(plot_data[gene_idx]).then(highlight_sample(sample))
             selected = selected_gene_idx;
+            setHashParams({'gene': gene, 'sample': sample});
         } else {
             highlight_sample(sample)
         }
@@ -450,7 +493,9 @@ function draw_heatmap() {
                 // console.log(this)
                 yticks.attr("class", "unselected_label")
                 jQuery(this).attr('class', 'selected_label')
+                var hash = setHashParams({'gene': d.text})
                 plot_per_base_depth(plot_data[plot_data.length - d.x - 1])
+                if("sample" in hash){ highlight_sample(hash.sample) }
             })
     })
 }
@@ -464,5 +509,37 @@ jQuery(document).ready(function () {
     }
 
     jQuery('#metric_select').on('change', function() { draw_heatmap() }).trigger('change')
-    plot_per_base_depth(plot_data[0])
+    var p = getHashParams();
+    var i = 0;
+    if("gene" in p) {
+        var gene = p.gene;
+        for(var j = 0; j < plot_data.length; j++){
+            if(plot_data[j].symbol == gene){
+                i = j
+                break
+            }
+        }
+
+    }
+    plot_per_base_depth(plot_data[i]).then(function() {
+        // NOTE we should put these events directly in the plot fn so we don't
+        // have code duplication, but here for now...
+        let yticks = jQuery("#heatmap_plot .yaxislayer-above > .ytick > text")
+                    console.log("re setting")
+        yticks.attr('class', 'unselected_label')
+        yticks.each(function (k) {
+                if (i == plot_data.length - k - 1) {
+                    jQuery(this).attr('class', 'selected_label')
+                }
+        })
+        if("sample" in p) {
+            highlight_sample(p.sample)
+            jQuery("#heatmap_plot .xaxislayer-above > .xtick > text").each(function(i, v) {
+                if(v.innerHTML == p.sample){
+                    jQuery(v).attr('class', 'selected_label')
+                }
+            })
+
+        }
+    })
 })
