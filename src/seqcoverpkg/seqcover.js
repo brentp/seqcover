@@ -249,8 +249,6 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var cds_stats = transcript.stats(cds, gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
     // console.log("CDS:", cds_stats)
 
-    // TODO: use this stats to fill table (to be created).
-
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]
 
@@ -425,8 +423,15 @@ function draw_heatmap() {
                 jQuery(this).attr("class", "selected_label")
             }
         })
-        // could be better optimized when we're not changing genes
-        plot_per_base_depth(plot_data[gene_idx]).then(highlight_sample(sample))
+
+        if(selected_gene_idx != selected) {
+            // only redraw if it's a new gene
+            plot_per_base_depth(plot_data[gene_idx]).then(highlight_sample(sample))
+            selected = selected_gene_idx;
+        } else {
+            highlight_sample(sample)
+        }
+
     })
     p.on('plotly_afterplot', function () {
         // initialize first gene as selected; or re-use selected (when changing metric)
