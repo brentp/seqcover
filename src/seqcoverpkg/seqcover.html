@@ -10,13 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" rel="stylesheet">
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.css" rel="stylesheet"/>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-    <script src="https://cdn.datatables.net/v/bs4/dt-1.10.21/b-1.6.3/b-html5-1.6.3/cr-1.5.2/r-2.2.5/sc-2.0.2/datatables.min.js"></script>
 
     <style>
         body {
@@ -34,33 +31,49 @@
             font-family: 'Raleway', sans-serif;
         }
 
+        .meta-info {
+            font-weight: 800;
+        }
+
         .yaxislayer-above {
+            cursor: pointer;
+            pointer-events: all;
+        }
+
+        .xaxislayer-above {
             cursor: pointer;
             pointer-events: all;
         }
 
         .selected_label {
             font-weight: 800;
+            text-decoration: underline;
         }
 
         .unselected_label {
             font-weight: 400;
         }
+
+        .unselected_label:hover {
+            text-decoration: underline;
+            font-weight: 700;
+        }
+
     </style>
 </head>
 
 <body>
     <!-- nav -->
     <div class="row bg-dark mx-0 p-1">
-        <div class="col-sm-3 col-md-2 col-lg-2"><a class="brand text-white
+        <div class="col-sm-3 col-md-2 col-lg-2 pl-1"><a class="brand text-white
                 text-decoration-none" href="https://github.com/brentp/seqcover">seqcover</a>
         </div>
-        <div class="col-sm-12 col-md-10 col-lg-8">
-        </div>
-        <div class="col-sm-12 col-md-12 col-lg-2 d-flex align-items-center justify-content-end" id="meta-header">
-            <!-- update span `genome-build` from plot_data -->
-            <div class="font-weight-light text-light">Genome build <span class="font-weight-bold"
-                    id="genome-build">GRCh38</span>
+        <div class="col-sm-9 col-md-10 col-lg-10 d-flex align-items-center justify-content-end" id="meta-header">
+            <div class="font-weight-light text-light">
+                <span class="meta-info" id="sample-count">__</span> samples;
+                <span class="meta-info" id="gene-count">__</span> genes
+                <!-- lower percentile threshold -->
+                <!-- genome build -->
             </div>
         </div>
     </div>
@@ -88,13 +101,11 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-12"><div id="gene_plot"></div></div>
-        </div>
-        <div class="row p-3">
-            <div class="table-responsive">
-                <table id="stats_table" class="table table-sm table-hover display nowrap w-100"></table>
+        <div class="row pt-2 mb-4">
+            <div class="col-md-5 col-lg-7">
+                <h5>Depth per base: <span id="header-selected-gene"></span></h5>
             </div>
+            <div class="col-12"><div id="gene_plot"></div></div>
         </div>
     </main>
 </body>
