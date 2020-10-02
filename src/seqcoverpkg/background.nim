@@ -1,6 +1,5 @@
 import argparse
 import strformat
-import math
 import os
 import d4
 import hts

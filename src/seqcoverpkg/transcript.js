@@ -203,7 +203,7 @@ class Transcript {
         var result = {}
         var background_low;
         // handle missing or undefined backgrounds
-        if (background_depths != undefined && background_depths != {}) {
+        if (background_depths != undefined && background_depths != {} && background_depths != []) {
             // background depths might hvae string keys like p5, p95. so we sort to
             // get the lowest value.
             var lo_key = Object.keys(background_depths).sort((a, b) => {
@@ -222,7 +222,9 @@ class Transcript {
                     let d = dps[i]
                     if (d < 0 || isNaN(d)) { continue; }
                     lo += (d < low_depth_cutoff);
-                    bg_lo += d < background_low[i];
+                    if (background_low != undefined) {
+                        bg_lo += d < background_low[i];
+                    }
                     H[Math.min(d, H.length - 1)] += 1;
                     S += d;
                     N += 1

@@ -337,7 +337,7 @@ function highlight_sample(sample) {
             if (t.name == sample) {
                 return [1, 1.5]
             } else {
-                return [0.15, 0.36]
+                return [0.25, 0.36]
             }
         }
     })
@@ -514,6 +514,10 @@ function draw_heatmap() {
 jQuery(document).ready(function () {
     update_header_metadata(Object.keys(plot_data[0].plot_coords.depths).length, plot_data.length)
 
+    if (Object.keys(plot_data[0].plot_coords.background_depths).length == 0) {
+        jQuery('#cds_lt_bg').remove()
+    }
+
     for(var g of plot_data) {
         if (g.unioned_transcript.constructor.name == "Object") {
             g.unioned_transcript = new Transcript(g.unioned_transcript)
@@ -539,7 +543,6 @@ jQuery(document).ready(function () {
         // NOTE we should put these events directly in the plot fn so we don't
         // have code duplication, but here for now...
         let yticks = jQuery("#heatmap_plot .yaxislayer-above > .ytick > text")
-                    console.log("re setting")
         yticks.attr('class', 'unselected_label')
         yticks.each(function (k) {
             if (i == plot_data.length - k - 1) {

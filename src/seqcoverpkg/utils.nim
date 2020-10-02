@@ -1,7 +1,6 @@
 import os
 import d4
 import httpclient
-import sequtils
 import strformat
 import hts/fai
 import json
