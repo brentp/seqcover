@@ -354,7 +354,7 @@ function tie_heatmap_to_line_plot() {
 
     xticks.each(function (i) {
         var item = jQuery(this);
-        item.css({ "fill": color_list[i] })
+        item.css({ "fill": color_list[i % color_list.length] })
         item.attr('pointer-events', 'all')
         item.on("click", function (e) {
             var n = jQuery(this)
@@ -414,6 +414,7 @@ function draw_heatmap() {
         z.push(row)
     }
     // heatmap draws from bottom up by default
+    let samples = Object.keys(plot_data[0].plot_coords.depths);
     z = z.reverse()
     y = y.reverse()
 
@@ -422,7 +423,8 @@ function draw_heatmap() {
         margin: { t: 10 },
         height: 20 * y.length + 60,
         paper_bgcolor: '#f8f9fa',
-        xaxis: { fixedrange: true, },
+        uniformtext: {"mode": "show", "minsize": 2},
+        xaxis: { tickfont: {size: 11}, fixedrange: true},
         yaxis: { fixedrange: true, },
         font: { size: 14 },
     }

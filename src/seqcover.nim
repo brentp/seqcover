@@ -45,6 +45,7 @@ proc report_main() =
     option("--genes", default="", help="comma-delimited list of genes for initial report")
     option("--fasta", default="", help="required path to fai indexed fasta file")
     option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
+    flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
 
   var argv = commandLineParams()
@@ -69,9 +70,11 @@ proc report_main() =
   var sample_d4s = read_d4s_to_table(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
   var gpt: seq[GenePlotData]
-  for gene in get_genes(opts.genes.split(",")):
-     var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
-     gpt.add(pd)
+  for gene in get_genes(opts.genes.split(","), hg19=opts.hg19):
+    var u = gene.transcripts.union
+    echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
+    var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
+    gpt.add(pd)
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
