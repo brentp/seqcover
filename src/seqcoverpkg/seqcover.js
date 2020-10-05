@@ -414,7 +414,6 @@ function draw_heatmap() {
         z.push(row)
     }
     // heatmap draws from bottom up by default
-    let samples = Object.keys(plot_data[0].plot_coords.depths);
     z = z.reverse()
     y = y.reverse()
 
@@ -422,11 +421,16 @@ function draw_heatmap() {
         title: "",
         margin: { t: 10 },
         height: 20 * y.length + 60,
+        width: 20 * x.length + 60,
         paper_bgcolor: '#f8f9fa',
         uniformtext: {"mode": "show", "minsize": 2},
-        xaxis: { tickfont: {size: 11}, fixedrange: true},
+        xaxis: { tickfont: {size: 12}, fixedrange: true},
         yaxis: { fixedrange: true, },
         font: { size: 14 },
+    }
+    // TODO: this should be based on window width.
+    if(hlayout.width < 400) {
+        hlayout.width = 400;
     }
     let heatmap_config = {
         displaylogo: false,
