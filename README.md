@@ -17,6 +17,12 @@ these formats can be output by [mosdepth](https://github.com/brentp/mosdepth) bu
 
 Generate a report:
 ```
+# generate per base depth files if you don't have them. can also parallize this...
+mkdir -p samples/
+for b in *.bam; do
+  n=$(basename $b .bam)
+  mosdepth -x -t 4 samples/$n $b
+done
 seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB \
 		 --background seqcover/seqcover_p5.d4 \
 		 --fasta $fasta samples/*.bed.gz \
@@ -25,8 +31,15 @@ seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B
 
 Generate a background level:
 ```
-seqcover generate-background -f $fasta -o seqcover/ d4s/HG00*.d4
+seqcover generate-background --percentile 5 -f $fasta -o seqcover/ d4s/HG00*.d4
 ```
+Once generated, this can be sent to `seqcover report` to give a metric for each sample
+of the number of bases below the 5th percentile of the backgrounds, which is a nice quality-control
+value. 
+
+These backgounds should be specific to the samples of interest, so if you are using exome data
+the backgrounds should be generated from samples from the same exome capture kit (and prefereably
+from the same sequencing center).
 
 
 ## How It Works
