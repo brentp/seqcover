@@ -216,7 +216,7 @@ function plot_per_base_depth(gene) {
     gene_layout.yaxis3.ticktext = gene.transcripts.map(t => t.data.transcript)
 
     let d = document.getElementById("gene_plot")
-    let p = Plotly.newPlot(d, depth_traces, gene_layout)
+    let p = Plotly.newPlot(d, depth_traces, gene_layout, {responsive: true})
     d.on("plotly_hover", data => {
         // handle_hover(data, depth_traces, gene, gene_layout)
         Plotly.react("gene_plot", depth_traces, gene_layout)
