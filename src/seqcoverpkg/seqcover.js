@@ -47,7 +47,6 @@ function setHashParams(obj) {
 
 window.onhashchange = function(event) {
     let old_hp = getHashParams(new URL(event.oldURL).hash.substring(1))
-    // console.log(old_hp)
     let new_hp = getHashParams()
     update_selected_gene_header(new_hp.gene)
 }
@@ -290,7 +289,6 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
 
     let low_depth_cutoff = 7; // TODO: get this from user-form input.
     var selection_stats = transcript.stats([{ start: start_idx, stop: stop_idx }], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
-    // console.log(selection_stats)
 
     var tx_stats = transcript.stats([{ start: 0, stop: gene.plot_coords.x.length }], gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
 
@@ -298,7 +296,6 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     // once per gene and result cached.
     var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
     var cds_stats = transcript.stats(cds, gene.plot_coords.depths, gene.plot_coords.background_depths, low_depth_cutoff)
-    // console.log("CDS:", cds_stats)
 
     var gstart = gene.plot_coords.g[start_idx]
     var gstop = gene.plot_coords.g[stop_idx]
@@ -378,6 +375,9 @@ function tie_heatmap_to_line_plot() {
 
 function draw_heatmap() {
 
+    let sample_z_scale = jQuery('#z_scale_samples').is(":checked")
+    let gene_z_scale = jQuery('#z_scale_genes').is(":checked")
+
     let stat_metric = jQuery("#metric_select").val()
 
     var low_depth_cutoff = 7;
@@ -394,11 +394,9 @@ function draw_heatmap() {
         var transcript = g.unioned_transcript
         var stats = null
         if (is_cds) {
-            // console.log("CDS")
             var cds = transcript.parts().filter(p => p.type == FeatureType.CDS)
             stats = transcript.stats(cds, g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
         } else {
-            // console.log("transcript")
             stats = transcript.stats([{ start: 0, stop: g.plot_coords.x.length }], g.plot_coords.depths, g.plot_coords.background_depths, low_depth_cutoff)
         }
 
@@ -410,9 +408,18 @@ function draw_heatmap() {
             }
             row.push(stats[s][metric])
         }
-        // console.log(row)
+        // row is a set of samples for a given metric
+        if(gene_z_scale) {
+            row = z_transform(row)
+        }
+
         z.push(row)
     }
+
+    if(sample_z_scale) {
+        z = z_transform_columns(z)
+    }
+
     // heatmap draws from bottom up by default
     z = z.reverse()
     y = y.reverse()
@@ -429,8 +436,8 @@ function draw_heatmap() {
         font: { size: 14 },
     }
     // TODO: this should be based on window width.
-    if(hlayout.width < 700) {
-        hlayout.width = 700;
+    if(hlayout.width < jQuery('#heatmap_plot').width()) {
+        hlayout.width = jQuery('#heatmap_plot').width();
     }
     let heatmap_config = {
         displaylogo: false,
@@ -537,7 +544,8 @@ jQuery(document).ready(function () {
         }
     }
 
-    jQuery('#metric_select').on('change', function() { draw_heatmap() }).trigger('change')
+    jQuery('#metric_select,.z_scale').on('change', function() { draw_heatmap() })
+    jQuery('#metric_select').trigger('change')
     var p = getHashParams();
     var i = 0;
     if ("gene" in p) {
@@ -572,3 +580,24 @@ jQuery(document).ready(function () {
         }
     })
 })
+
+
+function z_transform_columns(z) {
+    var ztr = new Array(z.length);
+    for(var rowi=0; rowi < z.length; rowi++){
+        ztr[rowi] = new Array(z[0].length)
+    }
+
+    for(var coli=0; coli < z[0].length; coli++){
+        var col = []
+        for(var rowi=0; rowi < z.length; rowi++) {
+            col.push(z[rowi][coli])
+        }
+        var tr = z_transform(col)
+        for(var rowi=0; rowi < z.length; rowi++) {
+            ztr[rowi][coli] = tr[rowi];
+        }
+
+    }
+    return ztr
+}

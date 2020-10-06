@@ -78,5 +78,18 @@ describe('Transcript', function () {
 
       })
   });
+  describe('zscore tests', function () {
+      it('should return correct zscore', function (){
+          var vals = [2, 4, 6,7,8,9]
+          var expected = [-1.6803361 , -0.84016805,  0.        ,  0.42008403,  0.84016805,
+        1.26025208]
 
+          let zs = transcript.z_transform(vals)
+          for(var i=0; i <vals.length; i++){
+              assert(Math.abs(zs[i] - expected[i]) < 0.0001, "expected:" + expected[i] + " obs:" + zs[i])
+          }
+
+      })
+
+  })
 });

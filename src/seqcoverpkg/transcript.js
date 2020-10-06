@@ -245,11 +245,24 @@ class Transcript {
     }
 }
 
+function z_transform(data) {
+    // TODO: use 1-pass for mean, sd
+    var s = 0
+    for(let d of data) s += d;
+    let mean = s / data.length;
+
+    var sd = 0;
+    for(let d of data) { sd += Math.pow(d - mean, 2); }
+    sd = Math.sqrt(sd / data.length);
+
+    return data.map(d => (d - mean) / sd)
+}
 
 try {
     // node.js stuff to allow testing
     exports.Transcript = Transcript
     exports.FeatureType = FeatureType
+    exports.z_transform = z_transform
 
 
     if (require.main === module) {
