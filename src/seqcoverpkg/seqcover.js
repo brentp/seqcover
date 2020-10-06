@@ -347,6 +347,7 @@ function tie_heatmap_to_line_plot() {
     // https://issue.life/questions/44297012
     var xticks = jQuery("#heatmap_plot .xaxislayer-above > .xtick > text")
     xticks.css({ "cursor": "pointer" })
+    xticks.attr('class', 'unselected_label')
     var d = document.getElementById("gene_plot")
 
     xticks.each(function (i) {
@@ -451,7 +452,6 @@ function draw_heatmap() {
         // responsive: true,
     }
     let trace = [{ x: x, y: y, z: z, type: 'heatmap', hoverongaps: false, colorscale: "Cividis" }]
-    // let trace = [{ x: x, y: y, z: z, type: 'heatmap', xgap: 1, ygap: 1, hoverongaps: false, colorscale: "Cividis" }]
 
     //https://plotly.com/javascript/reference/heatmap/
     let p = document.getElementById('heatmap_plot')
@@ -504,6 +504,7 @@ function draw_heatmap() {
     p.on('plotly_afterplot', function () {
         // initialize first gene as selected; or re-use selected (when changing metric)
         let yticks = jQuery("#heatmap_plot .yaxislayer-above > .ytick > text")
+        yticks.attr('class', 'unselected_label')
         if (!selected) {
             jQuery(yticks[plot_data.length - 1]).attr("class", "selected_label")
         } else {
@@ -524,8 +525,40 @@ function draw_heatmap() {
     })
 }
 
+function update_popovers() {
+    $('[data-toggle="tooltip"]').tooltip()
+
+    $("#navigation-popover").popover({
+        container: "body",
+        html: true,
+        title: "Navigating the report",
+        content: `
+            <ul class="m-0 ml-1 p-2">
+                <li>X and Y axes labels are clickable</li>
+                <li>Clicking gene names (y-axis labels) updates 'Depth per base' plot</li>
+                <li>Clicking sample names (x-axis labels) highlights the sample trace</li>
+                <li>Clicking heatmap values updates the selected gene and highlights the sample</li>
+            </ul>
+        `,
+    })
+    $("#depth-plot-popover").popover({
+        container: "body",
+        html: true,
+        title: "Depths by position across gene",
+        content: `
+            <ul class="m-0 ml-1 p-2">
+                <li>Depths per base per sample are displayed over gene length</li>
+                <li>Individual transcripts are merged into the Merged transcript</li>
+                <li>CDS segments are colored light red</li>
+                <li>UTR segments are light gray</li>
+            </ul>
+        `,
+    })
+}
+
 jQuery(document).ready(function () {
     update_header_metadata(Object.keys(plot_data[0].plot_coords.depths).length, plot_data.length)
+    update_popovers()
 
     if (Object.keys(plot_data[0].plot_coords.background_depths).length == 0) {
         jQuery('#cds_lt_bg').remove()
@@ -580,7 +613,6 @@ jQuery(document).ready(function () {
         }
     })
 })
-
 
 function z_transform_columns(z) {
     var ztr = new Array(z.length);

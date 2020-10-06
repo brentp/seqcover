@@ -59,6 +59,14 @@
             font-weight: 700;
         }
 
+        .popover{
+            max-width: 40%;
+        }
+
+        .fa-question-circle {
+            padding-left: .30em;
+        }
+
     </style>
 </head>
 
@@ -80,21 +88,21 @@
     <main role="main" class="container-fluid">
 
         <div class="row pt-2 bg-light">
-            <div class="col-md-5 col-lg-7">
-                <h5>Coverage summary</h5>
+            <div class="col-md-6 col-lg-6">
+                <h5>Coverage summary <span id="navigation-popover" data-toggle="popover"><i class="far fa-question-circle fa-sm"></i></span></h5>
             </div>
-            <div class="col-sm-12 col-md-7 col-lg-5 d-flex align-items-center">
-                <div class="input-group input-group-sm">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Sample Scaling</span>
+            <div class="col-sm-12 col-lg-6 d-flex align-items-center">
+                <div class="col-auto my-1">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input z_scale" type="checkbox" value="" id="z_scale_samples">
+                        <label class="form-check-label pr-3" for="z_scale_samples" title="Scale values within each sample" data-toggle="tooltip">
+                            Sample Scaling
+                        </label>
+                        <input class="form-check-input z_scale" type="checkbox" value="" id="z_scale_genes">
+                        <label class="form-check-label" for="z_scale_genes" title="Scale values within each gene" data-toggle="tooltip">
+                            Gene Scaling
+                        </label>
                     </div>
-                    <input class="form-control z_scale" type="checkbox"
-                    id="z_scale_samples" title="scale values within each sample">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Gene Scaling</span>
-                    </div>
-                    <input class="form-control z_scale" type="checkbox" 
-                    id="z_scale_genes" title="scale values within each gene">
                 </div>
                 <div class="input-group input-group-sm">
                     <div class="input-group-prepend">
@@ -115,7 +123,10 @@
 
         <div class="row pt-2 mb-4">
             <div class="col-md-5 col-lg-7">
-                <h5>Depth per base: <span id="header-selected-gene"></span></h5>
+                <h5>Depth per base:
+                    <span id="header-selected-gene"></span>
+                    <span id="depth-plot-popover" data-toggle="popover"><i class="far fa-question-circle fa-sm"></i></span>
+                </h5>
             </div>
             <div class="col-12"><div id="gene_plot"></div></div>
         </div>
