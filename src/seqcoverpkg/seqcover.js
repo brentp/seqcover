@@ -140,10 +140,10 @@ function get_depth_trace(gene) {
         i += 1
         var dp = gene.plot_coords.depths[sample]
         dp = dp.map(function (v) { return v < -1000 ? NaN : v })
-        var color = color_list[i];
+        var color = color_list[i % color_list.length];
         var trace = {
             x: gene.plot_coords.x, text: gene.plot_coords.g, y: dp,
-            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color: color_list[i] },
+            type: 'scattergl', mode: 'lines', name: sample, line: { width: 0.36, color: color_list[i % color_list.length] },
             hovertemplate: HOVER_TEMPLATE,
             hoverdistance: 1000,
             hoverinfo: "none",
@@ -157,7 +157,7 @@ function get_depth_trace(gene) {
         // in a similar trace with wider line.
         if (low_dp) {
             var low_trace = {
-                x: [], y: [], text: [], type: 'scatter', mode: "lines", name: sample, line: { width: 3.0, color: color_list[i] },
+                x: [], y: [], text: [], type: 'scatter', mode: "lines", name: sample, line: { width: 3.0, color: color_list[i % color_list.length] },
                 hoverinfo: "none",
                 connectgaps: false,
                 yaxis: "y",
@@ -528,6 +528,12 @@ jQuery(document).ready(function () {
         if (g.unioned_transcript.constructor.name == "Object") {
             g.unioned_transcript = new Transcript(g.unioned_transcript)
             g.transcripts = g.transcripts.map(t => new Transcript(t))
+            for(var s in g.plot_coords.depths) {
+                g.plot_coords.depths[s] = Float32Array.from(g.plot_coords.depths[s])
+            }
+
+            g.plot_coords.x = Int32Array.from(g.plot_coords.x)
+            g.plot_coords.g = Int32Array.from(g.plot_coords.g)
         }
     }
 
