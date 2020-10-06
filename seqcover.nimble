@@ -1,6 +1,6 @@
 import os
 
-version       = "0.0.1"
+version       = "0.0.2"
 author        = "Brent Pedersen"
 description   = "find depth support for DUP/DEL/CNV calls that use PE/SR"
 license       = "MIT"
