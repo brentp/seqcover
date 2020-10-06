@@ -429,8 +429,8 @@ function draw_heatmap() {
         font: { size: 14 },
     }
     // TODO: this should be based on window width.
-    if(hlayout.width < 400) {
-        hlayout.width = 400;
+    if(hlayout.width < 700) {
+        hlayout.width = 700;
     }
     let heatmap_config = {
         displaylogo: false,
