@@ -23,7 +23,7 @@ for b in *.bam; do
   n=$(basename $b .bam)
   mosdepth -x -t 4 samples/$n $b
 done
-seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB \
+seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1 \
 		 --background seqcover/seqcover_p5.d4 \
 		 --fasta $fasta samples/*.bed.gz \
 		 -r my_genes_report.html

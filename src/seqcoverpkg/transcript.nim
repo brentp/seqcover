@@ -86,10 +86,15 @@ proc union*(trs:seq[Transcript]): Transcript =
       result.position.add(A)
       A = B
     else:
-      A[1] = B[1]
+      A[1] = max(A[1], B[1])
 
   if result.position.len == 0 or result.position[^1] != A:
-    result.position.add(A)
+    if result.position[^1][0] <= A[0] and result.position[^1][1] >= A[1]: return
+    # final interval needs to be merged/extended
+    if result.position[^1][1] >= A[0]:
+      result.position[^1][1] = max(A[1], result.position[^1][1])
+    else:
+      result.position.add(A)
 
 proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
   doAssert pos >= u.txstart and pos <= u.txend, &"error can't translate position {pos} outside of unioned transcript ({u.txstart}, {u.txend})"
@@ -140,7 +145,7 @@ proc translate*(u:Transcript, o:Transcript, extend:uint32, max_gap:uint32): Tran
   for i, o_exon in o.position:
     let l_off = left + u.find_offset(o_exon[0], extend.int, max_gap.int)
     let r_off = left + u.find_offset(o_exon[1], extend.int, max_gap.int)
-    doAssert r_off - l_off == o_exon[1] - o_exon[0]
+    doAssert r_off - l_off == o_exon[1] - o_exon[0], $(r_off, l_off, o_exon, i)
 
     result.position.add([l_off, r_off])
 
