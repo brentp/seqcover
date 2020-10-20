@@ -1,8 +1,11 @@
 import os
 import d4
+import sets
 import httpclient
 import strformat
+import sequtils
 import hts/fai
+import algorithm
 import json
 import strutils
 import ./typeenum
@@ -22,6 +25,24 @@ proc get_gene(gene:string, species:string="human") =
 
 proc `$`(j:JsonNode): string =
   return json.`$`(j).strip(chars={'"'})
+
+proc drop_alt_chroms(g:var Gene) =
+  # prefer, e.g. 22 over 22_KI270879v1_alt
+  var chromset = initHashSet[string]()
+  for t in g.transcripts:
+    chromset.incl($(t.`chr`))
+
+  if chromset.len <= 1: return
+  var chroms: seq[string] = toSeq(chromset)
+  chroms.sort do (a:string, b:string) -> int:
+    result = len(a) - len(b)
+  var drop: seq[int]
+  for i, t in g.transcripts:
+    if t.`chr` != chroms[0]: drop.add(i)
+
+  for i in reversed(drop):
+    g.transcripts.delete(i)
+
 
 proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq[Gene] =
   var C = newHttpClient()
@@ -55,17 +76,9 @@ proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq
       gene.transcripts = to(res["exons_hg19"], seq[Transcript])
     else:
       gene.transcripts = to(res["exons"], seq[Transcript])
+
+    gene.drop_alt_chroms
     result.add(gene)
-
-
-
-  #var gene_id = $js["hits"][0]["_id"]
-  #gene_id = gene_id.strip(chars={'"'})
-
-  #echo &"http://mygene.info/v3/gene/{gene_id}?fields=name,symbol,exons"
-  #var exons = C.getContent(&"http://mygene.info/v3/gene/{gene_id}?fields=name,symbol,exons")
-  #echo exons
-
 
 
 proc get_glob_samples*(paths: seq[string]): seq[string] =

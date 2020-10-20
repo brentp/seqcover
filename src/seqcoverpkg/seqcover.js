@@ -80,7 +80,7 @@ function get_gene_plot_layout(gene) {
             showgrid: false,
             ticklen: 5,
         },
-        yaxis: { title: "Depth", domain: [0.28, 1], },
+        yaxis: { title: "Depth", domain: [0.28, 1]},
         yaxis2: {
             range: [0.5, -0.5],
             showlegend: false,
@@ -439,6 +439,9 @@ function draw_heatmap() {
     // TODO: this should be based on window width.
     if(hlayout.width < jQuery('#heatmap_plot').width()) {
         hlayout.width = jQuery('#heatmap_plot').width();
+    }
+    if(hlayout.height < 300) {
+        hlayout.height = 300;
     }
     let heatmap_config = {
         displaylogo: false,
