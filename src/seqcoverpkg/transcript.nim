@@ -65,8 +65,10 @@ proc union*(trs:seq[Transcript]): Transcript =
     if t.`chr` != result.`chr`: continue
     if t.coding and t.cdsstart < result.cdsstart:
       result.cdsstart = t.cdsstart
+
     if t.coding and t.cdsend > result.cdsend:
       result.cdsend = t.cdsend
+
     if t.txstart < result.txstart:
       result.txstart = t.txstart
     if t.txend > result.txend:
@@ -75,6 +77,7 @@ proc union*(trs:seq[Transcript]): Transcript =
       H.push(ex)
 
   result.position = newSeqOfCap[array[2, int]](4)
+  if H.size == 0: return
   var A = H.pop
   var B: array[2, int]
   while H.size > 0:
@@ -89,16 +92,16 @@ proc union*(trs:seq[Transcript]): Transcript =
       A[1] = max(A[1], B[1])
 
   if result.position.len == 0 or result.position[^1] != A:
-    if result.position[^1][0] <= A[0] and result.position[^1][1] >= A[1]: return
+    if result.position.len > 0 and result.position[^1][0] <= A[0] and result.position[^1][1] >= A[1]: return
     # final interval needs to be merged/extended
-    if result.position[^1][1] >= A[0]:
+    if result.position.len > 0 and result.position[^1][1] >= A[0]:
       result.position[^1][1] = max(A[1], result.position[^1][1])
     else:
       result.position.add(A)
 
 proc find_offset*(u:Transcript, pos:int, extend:int, max_gap:int): int =
   doAssert pos >= u.txstart and pos <= u.txend, &"error can't translate position {pos} outside of unioned transcript ({u.txstart}, {u.txend})"
-  if pos < u.position[0][0]:
+  if u.position.len == 0 or pos < u.position[0][0]:
     return pos - u.txstart
 
   result = u.position[0][0] - u.txstart
@@ -182,7 +185,7 @@ proc exon_plot_coords*(tr:Transcript, dps:TableRef[string, Cover], backgrounds:T
   result.depths = newTable[string, seq[int32]]()
   result.background_depths = newTable[string, seq[int32]]()
 
-  var right = tr.position[0][0].int
+  var right = if tr.position.len > 0: tr.position[0][0].int else: tr.txstart
   var stop = tr.txend + min(1000, extend.int)
 
   if utrs:

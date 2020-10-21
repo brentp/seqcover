@@ -26,6 +26,11 @@ proc get_gene(gene:string, species:string="human") =
 proc `$`(j:JsonNode): string =
   return json.`$`(j).strip(chars={'"'})
 
+proc cds_max(g:Gene): int =
+  ## find largest cds region across all transcripts in the gene.
+  for tr in g.transcripts:
+    result = max(result,  tr.cdsend - tr.cdsstart)
+
 proc drop_alt_chroms(g:var Gene) =
   # prefer, e.g. 22 over 22_KI270879v1_alt
   var chromset = initHashSet[string]()
@@ -42,6 +47,38 @@ proc drop_alt_chroms(g:var Gene) =
 
   for i in reversed(drop):
     g.transcripts.delete(i)
+
+proc drop_dups(genes:var seq[Gene], symbol: string) =
+  # keep gene with highest cound of CDS
+
+  var idxs = newSeqOfCap[int](4)
+  var sel = newSeq[Gene]() 
+
+  for i, gene in genes:
+    if gene.symbol == symbol:
+      idxs.add(i)
+      sel.add(gene)
+
+  idxs.sort do (i, j:int) -> int:
+    var icds = cds_max(sel[i])
+    var jcds = cds_max(sel[j])
+    return icds - jcds
+
+  # we drop all but the last idx from the genes
+  # so we drop the one we want to keep here.
+  idxs = idxs[0..<idxs.high]
+
+  for idx in reversed(idxs):
+    genes.delete(idx)
+
+proc drop_dups(genes: var seq[Gene]) =
+  var c = initCountTable[string]()
+  for g in genes:
+    c.inc(g.symbol)
+
+  for symbol, cnt in c:
+    if cnt == 1: continue
+    genes.drop_dups(symbol)
 
 
 proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq[Gene] =
@@ -64,9 +101,9 @@ proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq
   data["species"] = species
   data["ids"] = ids.join(",")
   if hg19:
-    data["fields"] = "name,symbol,exons_hg19"
+    data["fields"] = "name,symbol,exons_hg19,genomic_pos_hg19"
   else:
-    data["fields"] = "name,symbol,exons"
+    data["fields"] = "name,symbol,exons,genomic_pos"
 
 
   for res in C.postContent("http://mygene.info/v3/gene", multipart=data).parseJson:
@@ -75,10 +112,23 @@ proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq
     if hg19:
       gene.transcripts = to(res["exons_hg19"], seq[Transcript])
     else:
+      if "exons" notin res:
+        res["exons"] = % @[{"txstart": res["genomic_pos"]["start"],
+                          "txend": res["genomic_pos"]["end"],
+                          "cdsstart": res["genomic_pos"]["end"],
+                          "cdsend": res["genomic_pos"]["end"],
+                          #"position": % @[@[res["genomic_pos"]["start"], res["genomic_pos"]["end"]]],
+                          "position": % newSeq[int](),
+                          "chr": res["genomic_pos"]["chr"],
+                          "transcript": %"NA",
+                          "strand": res["genomic_pos"]["strand"]
+                          }]
+      echo "res:", $res
       gene.transcripts = to(res["exons"], seq[Transcript])
 
     gene.drop_alt_chroms
     result.add(gene)
+  result.drop_dups
 
 
 proc get_glob_samples*(paths: seq[string]): seq[string] =
