@@ -48,11 +48,15 @@ function setHashParams(obj) {
 window.onhashchange = function(event) {
     let old_hp = getHashParams(new URL(event.oldURL).hash.substring(1))
     let new_hp = getHashParams()
-    update_selected_gene_header(new_hp.gene)
 }
 
 function update_selected_gene_header(gene) {
-    document.getElementById("header-selected-gene").innerHTML = gene
+    let g = plot_data.filter(g => g.symbol == gene)[0]
+    if(g == undefined) g = plot_data[0];
+    let chrom = g.transcripts[0].chr
+    let start = g.plot_coords.g[0]
+    let stop = g.plot_coords.g[g.plot_coords.g.length - 1]
+    document.getElementById("header-selected-gene").innerHTML = `${gene} <i>${chrom}:${start}-${stop}</i>`
 }
 
 function update_header_metadata(n_samples, n_genes) {
@@ -202,6 +206,7 @@ function get_transcript_traces(gene, transcripts, plotRef) {
 
 function plot_per_base_depth(gene) {
     setHashParams({'gene': gene.symbol})
+    update_selected_gene_header(gene.symbol)
     let gene_layout = get_gene_plot_layout(gene)
     let depth_traces = get_depth_trace(gene)
     let unioned_transcript_traces = get_transcript_traces(gene, [gene.unioned_transcript], "y2")
@@ -583,10 +588,9 @@ jQuery(document).ready(function () {
     jQuery('#metric_select,.z_scale').on('change', function() { draw_heatmap() })
     jQuery('#metric_select').trigger('change')
     var p = getHashParams();
-    var i = 0;
+    var i = 0; // TODO: rename `i`
     if ("gene" in p) {
         var gene = p.gene;
-        update_selected_gene_header(gene)
         for(var j = 0; j < plot_data.length; j++){
             if(plot_data[j].symbol == gene){
                 i = j
