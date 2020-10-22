@@ -48,6 +48,12 @@ describe('Transcript', function () {
 
           assert.equal(traces[0].name, tr.name)
 
+
+          var trace = traces[traces.length - 1]; // get a CDS trace
+          assert(trace.text[0].startsWith("exon 6 / 6"))
+          assert(trace.text[trace.text.length - 1].startsWith("exon 1 / 6"))
+
+
       })
 
       it('stats returns expected values', function() {

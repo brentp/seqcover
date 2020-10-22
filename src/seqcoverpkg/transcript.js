@@ -29,7 +29,7 @@ const aesthetics = {
     TRANSCRIPT_COLOR: "rgba(65, 65, 65, 0.6)",
     TRANSCRIPT_WIDTH: 4,
     EXON_COLOR: "rgba(105,105,105, 0.6)",
-    EXON_WIDTH: 9,
+    EXON_WIDTH: 19,
     CDS_COLOR: 'rgb(195, 155, 155)',
     CDS_WIDTH: 12,
 }
@@ -160,31 +160,51 @@ class Transcript {
         let parts = this.parts()
 
         var exon_trace = {
-            name: this.data.transcript + " exons", x: [], y: [],
+            name: this.data.transcript + " exons", x: [], y: [], text:[],
             type: "scatter", mode: "lines", showlegend: false,
-            hoverinfo: "none",
+            hoverinfo: "text",
             line: { color: aesthetics.EXON_COLOR, width: aesthetics.EXON_WIDTH }
         }
-        parts.filter(p => p.type == FeatureType.EXON).forEach(e => {
+        let exons = parts.filter(p => p.type == FeatureType.EXON)
+        exons.forEach((e, i) => {
             if ((exon_trace.x.length) > 0) {
                 exon_trace.x.push(NaN)
                 exon_trace.y.push(y_offset)
+                exon_trace.text.push(undefined)
             }
+            var iex = this.data.strand == -1 ? (exons.length - i) : (i + 1)
+
+            let txt = `exon ${iex} / ${exons.length}`;
+            exon_trace.text.push(txt, txt)
             exon_trace.x.push(e.start, e.stop)
             exon_trace.y.push(y_offset, y_offset)
         })
 
         var cds_trace = {
-            name: this.data.transcript + " CDS", x: [], y: [],
+            name: this.data.transcript + " CDS", x: [], y: [], text:[],
             type: "scatter", mode: "lines", showlegend: false,
-            hoverinfo: "none",
+            hoverinfo: "text",
+            hovermode:"closest-x",
             line: { color: aesthetics.CDS_COLOR, width: aesthetics.CDS_WIDTH }
         }
         parts.filter(p => p.type == FeatureType.CDS).forEach(c => {
             if ((cds_trace.x.length) > 0) {
                 cds_trace.x.push(NaN)
                 cds_trace.y.push(y_offset)
+                cds_trace.text.push(undefined)
             }
+            // index back into exon array even for CDS hover
+            var ei = 0
+            for(var e of exons) {
+                ei += 1
+                if(e.start <= c.start && e.stop >= c.stop) {
+                    break;
+                }
+            }
+
+            var iex = this.data.strand == -1 ? (exons.length - ei + 1) : (ei + 1)
+            let txt = `exon ${iex} / ${exons.length} (CDS)`
+            cds_trace.text.push(txt, txt)
             cds_trace.x.push(c.start, c.stop)
             cds_trace.y.push(y_offset, y_offset)
         })
