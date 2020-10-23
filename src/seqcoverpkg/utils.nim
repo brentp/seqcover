@@ -57,7 +57,7 @@ proc drop_dups(genes:var seq[Gene], symbol: string) =
   for i, gene in genes:
     if gene.symbol == symbol:
       idxs.add(i)
-      sel.add(gene)
+    sel.add(gene)
 
   idxs.sort do (i, j:int) -> int:
     var icds = cds_max(sel[i])
@@ -80,6 +80,18 @@ proc drop_dups(genes: var seq[Gene]) =
     if cnt == 1: continue
     genes.drop_dups(symbol)
 
+
+proc fill(res:JsonNode, key:string): JsonNode =
+    return % @[{"txstart": res[key]["start"],
+                      "txend": res[key]["end"],
+                      "cdsstart": res[key]["end"],
+                      "cdsend": res[key]["end"],
+                      #"position": % @[@[res[key]["start"], res[key]["end"]]],
+                      "position": % newSeq[int](),
+                      "chr": res[key]["chr"],
+                      "transcript": %"NA",
+                      "strand": res[key]["strand"]
+                      }]
 
 proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq[Gene] =
   var C = newHttpClient()
@@ -108,22 +120,21 @@ proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq
 
   for res in C.postContent("http://mygene.info/v3/gene", multipart=data).parseJson:
     var gene = Gene(symbol: $res["symbol"], description: $res["name"])
+    var res = res
 
     if hg19:
+      if "exons_hg19" notin res:
+        if "genomic_pos_hg19" in res:
+          res["exons_hg19"] = fill(res, "genomic_pos_hg19")
+        else:
+          continue
       gene.transcripts = to(res["exons_hg19"], seq[Transcript])
     else:
       if "exons" notin res:
-        res["exons"] = % @[{"txstart": res["genomic_pos"]["start"],
-                          "txend": res["genomic_pos"]["end"],
-                          "cdsstart": res["genomic_pos"]["end"],
-                          "cdsend": res["genomic_pos"]["end"],
-                          #"position": % @[@[res["genomic_pos"]["start"], res["genomic_pos"]["end"]]],
-                          "position": % newSeq[int](),
-                          "chr": res["genomic_pos"]["chr"],
-                          "transcript": %"NA",
-                          "strand": res["genomic_pos"]["strand"]
-                          }]
-      echo "res:", $res
+        if "genomic_pos" in res:
+          res["exons"] = fill(res, "genomic_pos")
+        else:
+          continue
       gene.transcripts = to(res["exons"], seq[Transcript])
 
     gene.drop_alt_chroms
