@@ -337,9 +337,9 @@ function highlight_sample(sample) {
             return [undefined, undefined]
         } else {
             if (t.name == sample) {
-                return [1, 1.5]
+                return [1, 1.8]
             } else {
-                return [0.25, 0.36]
+                return [0.15, 0.36]
             }
         }
     })

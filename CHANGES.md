@@ -1,3 +1,7 @@
+v0.0.4 (dev)
+============
++ plot aesthetics (#23)
+
 v0.0.3
 ======
 + fix bug for overlapping exons (#21)
