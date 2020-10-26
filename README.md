@@ -10,6 +10,10 @@ seqcover is a tool for viewing and evaluating depth-of-coverage with the followi
 
 It is available as a static linux binary.
 
+## Example Output
+
+https://brentp.github.io/seqcover/
+
 ### Usage
 
 `seqcover` can accept per-base coverage files in [d4](https://github.com/38/d4-format) or bgzipped bedgaph format. Either of
@@ -23,7 +27,7 @@ for b in *.bam; do
   n=$(basename $b .bam)
   mosdepth -x -t 4 samples/$n $b
 done
-seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1 \
+seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1,CCDC39,AIFM1,CHCHD10 \
 		 --background seqcover/seqcover_p5.d4 \
 		 --fasta $fasta samples/*.bed.gz \
 		 -r my_genes_report.html
