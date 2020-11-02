@@ -47,6 +47,8 @@ proc report_main() =
     option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
     flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
+    # Added option for transcripts-file
+    option("-t", "--transcripts-file", default="", help="path to transcript file for use if no internet connection (can be made with the save-transcripts option)")
 
   var argv = commandLineParams()
   if len(argv) > 0 and argv[0] == "report":
@@ -70,16 +72,80 @@ proc report_main() =
   var sample_d4s = read_d4s_to_table(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
   var gpt: seq[GenePlotData]
-  for gene in get_genes(opts.genes.split(","), hg19=opts.hg19):
-    var u = gene.transcripts.union
-    echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
-    var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
-    gpt.add(pd)
+  
+  
+  # If exists a transcripts-file - use instead of get_genes proc
+  query_genes = opts.genes.split(",")
+  genes: seq[Gene]
+  if opts.transcripts_file == "":
+    genes = get_genes(query_genes, hg19=opts.hg19)
+  else:
+    # read json from the transcripts file and parse into table. Then check if gene from --genes are present in table. Then add to genes seq.
+    #if gene in query_genes -> add gene to genes and remove gene from query-genes-table. Then iterate remaining query genes and report was not found
+
+    # Check if file is present:
+
+      
+    for gene in parseFile(opts.transcripts-file):
+      if to(gene, Gene).symbol in query_genes:
+        genes.add(to(gene, Gene))
+        query_genes.del(query_genes.find(to(gene, Gene).symbol))
+    echo "The following genes were not in the transcripts-file: "&query_genes.join(", ")
+  
+  for gene in genes:
+      var u = gene.transcripts.union
+      echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
+      var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
+      gpt.add(pd)
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
   write_html(opts.report_path, gpt)
   stderr.write_line &"[seqcover] wrote report to:{opts.report_path}"
+
+proc save_transcripts_main() =
+  let p = newParser("seqcover save-transcripts"):
+    option("--genes", default="", help="comma-delimited list of genes for initial report")
+    option("-o", "--output-path", default="transcripts.json", help="path to transcript file to be written")
+    flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
+  
+  var argv = commandLineParams()
+  if len(argv) > 0 and argv[0] == "generate-transcript-file":
+    argv = argv[1..argv.high]
+  if len(argv) == 0:
+    argv.add("--help")
+
+  var opts = p.parse(argv)
+  if opts.help:
+    quit 0
+  
+  let g = get_genes(opts.genes.split(","), hg19=opts.hg19)
+  writeFile(opts.output_path, $(pretty(%*g)))
+  
+  
+  
+
+
+# export LD_LIBRARY_PATH=/usr/local/lib/
+# nim c --lineDir:on --debuginfo -r --threads:on src/seqcover.nim generate-transcript-file --hg19 --genes GJB1,SETX
+
+#[
+
+import sequtils
+var x: seq[string] = @["GJB1", "SETX", "PMP22"]
+
+# Add 
+x.add("MPZ")
+
+# Remove
+x.del(x.find("GJB1"))
+
+echo "The following genes were not found: "&x.join(", ")
+
+
+]#
+
+
 
 
 proc main() =
@@ -89,7 +155,8 @@ proc main() =
 
   var dispatcher = {
     "generate-background": pair(fn:generate_background_main, description: "generate background file(s) from a set of samples"),
-    "report": pair(fn:report_main, description: "create an HTML report from a set of sample coverage files")
+    "report": pair(fn:report_main, description: "create an HTML report from a set of sample coverage files"),
+    "save-transcripts": pair(fn:save_transcripts_main, description: "create a json-file with transcripts that can be used as input for report if you cannot access mygene.info")
   }.toOrderedTable
 
   var args = commandLineParams()

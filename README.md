@@ -45,6 +45,15 @@ These backgounds should be specific to the samples of interest, so if you are us
 the backgrounds should be generated from samples from the same exome capture kit (and prefereably
 from the same sequencing center).
 
+Generate a transcript file:
+```
+# generate a transcripts file that can be used as input to the report option with the --transcripts-file option
+# this is useful if running on servers with restricted internet access
+
+seqcover generate-transcript-file --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1,CCDC39,AIFM1,CHCHD10 \
+		 --output-path transcripts.json \
+		 --hg19
+```
 
 ## How It Works
 
