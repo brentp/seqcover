@@ -45,6 +45,22 @@ These backgounds should be specific to the samples of interest, so if you are us
 the backgrounds should be generated from samples from the same exome capture kit (and prefereably
 from the same sequencing center).
 
+Generate a transcript file:
+```
+# generate a transcripts file that can be used as input to the report option with the --transcripts-file option
+# this is useful if running on servers with restricted internet access
+
+seqcover save-transcripts --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1,CCDC39,AIFM1,CHCHD10 \
+		 --output-path transcripts.json \
+		 --hg19
+
+# use the file as input to report with the --transcripts-file option
+seqcover report --genes PIGA,KCNQ2,ARX,DNM1,SLC25A22,CDKL5,GABRA1,CAD,MDH2,SCN1B,CNPY3,CPLX1,NEB,HNRNPA1,CCDC39,AIFM1,CHCHD10 \
+		 --background seqcover/seqcover_p5.d4 \
+		 --fasta $fasta samples/*.bed.gz \
+		 -r my_genes_report.html \
+		 --transcripts-file transcripts.json
+```
 
 ## How It Works
 

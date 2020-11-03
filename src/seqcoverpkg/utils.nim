@@ -93,53 +93,64 @@ proc fill(res:JsonNode, key:string): JsonNode =
                       "strand": res[key]["strand"]
                       }]
 
-proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false): seq[Gene] =
-  var C = newHttpClient()
-  var data = newMultipartData()
-  data["q"] = genes.join(",")
-  data["species"] = species
-  data["scopes"] = "symbol,entrezgene,ensemblgene,retired"
+proc get_genes*(genes:seq[string], species:string="human", hg19:bool=false, transcript_file:string=""): seq[Gene] =
+  # If exists a transcripts-file - use instead of mygene.info 
+  if transcript_file != "":
+    var query_genes = genes
+    for gene in parseFile(transcript_file):
+      if to(gene, Gene).symbol in query_genes:
+        result.add(to(gene, Gene))
+        query_genes.del(query_genes.find(to(gene, Gene).symbol))
+    if len(query_genes) > 0:
+      echo "The following genes were not in the transcripts-file: "&query_genes.join(", ")
 
-  var r = C.postContent("http://mygene.info/v3/query", multipart=data)
-  var js = parseJson(r)
-  var ids = newSeq[string]()
-  for res in js:
-    if "_id" in res:
-      ids.add($res["_id"])
-    elif "notfound" in res:
-      stderr.write_line &"""[seqcover] {res["query"]} not found, skipping"""
-
-  data = newMultipartData()
-  data["species"] = species
-  data["ids"] = ids.join(",")
-  if hg19:
-    data["fields"] = "name,symbol,exons_hg19,genomic_pos_hg19"
   else:
-    data["fields"] = "name,symbol,exons,genomic_pos"
+    var C = newHttpClient()
+    var data = newMultipartData()
+    data["q"] = genes.join(",")
+    data["species"] = species
+    data["scopes"] = "symbol,entrezgene,ensemblgene,retired"
 
+    var r = C.postContent("http://mygene.info/v3/query", multipart=data)
+    var js = parseJson(r)
+    var ids = newSeq[string]()
+    for res in js:
+      if "_id" in res:
+        ids.add($res["_id"])
+      elif "notfound" in res:
+        stderr.write_line &"""[seqcover] {res["query"]} not found, skipping"""
 
-  for res in C.postContent("http://mygene.info/v3/gene", multipart=data).parseJson:
-    var gene = Gene(symbol: $res["symbol"], description: $res["name"])
-    var res = res
-
+    data = newMultipartData()
+    data["species"] = species
+    data["ids"] = ids.join(",")
     if hg19:
-      if "exons_hg19" notin res:
-        if "genomic_pos_hg19" in res:
-          res["exons_hg19"] = fill(res, "genomic_pos_hg19")
-        else:
-          continue
-      gene.transcripts = to(res["exons_hg19"], seq[Transcript])
+      data["fields"] = "name,symbol,exons_hg19,genomic_pos_hg19"
     else:
-      if "exons" notin res:
-        if "genomic_pos" in res:
-          res["exons"] = fill(res, "genomic_pos")
-        else:
-          continue
-      gene.transcripts = to(res["exons"], seq[Transcript])
+      data["fields"] = "name,symbol,exons,genomic_pos"
 
-    gene.drop_alt_chroms
-    result.add(gene)
-  result.drop_dups
+
+    for res in C.postContent("http://mygene.info/v3/gene", multipart=data).parseJson:
+      var gene = Gene(symbol: $res["symbol"], description: $res["name"])
+      var res = res
+
+      if hg19:
+        if "exons_hg19" notin res:
+          if "genomic_pos_hg19" in res:
+            res["exons_hg19"] = fill(res, "genomic_pos_hg19")
+          else:
+            continue
+        gene.transcripts = to(res["exons_hg19"], seq[Transcript])
+      else:
+        if "exons" notin res:
+          if "genomic_pos" in res:
+            res["exons"] = fill(res, "genomic_pos")
+          else:
+            continue
+        gene.transcripts = to(res["exons"], seq[Transcript])
+
+      gene.drop_alt_chroms
+      result.add(gene)
+    result.drop_dups
 
 
 proc get_glob_samples*(paths: seq[string]): seq[string] =
