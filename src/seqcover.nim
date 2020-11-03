@@ -73,24 +73,18 @@ proc report_main() =
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
   var gpt: seq[GenePlotData]
   
-  
   # If exists a transcripts-file - use instead of get_genes proc
   var query_genes = opts.genes.split(",")
   var genes: seq[Gene]
   if opts.transcripts_file == "":
     genes = get_genes(query_genes, hg19=opts.hg19)
   else:
-    # read json from the transcripts file and parse into table. Then check if gene from --genes are present in table. Then add to genes seq.
-    #if gene in query_genes -> add gene to genes and remove gene from query-genes-table. Then iterate remaining query genes and report was not found
-
-    # Check if file is present:
-
-      
     for gene in parseFile(opts.transcripts_file):
       if to(gene, Gene).symbol in query_genes:
         genes.add(to(gene, Gene))
         query_genes.del(query_genes.find(to(gene, Gene).symbol))
-    echo "The following genes were not in the transcripts-file: "&query_genes.join(", ")
+    if len(query_genes) > 0:
+      echo "The following genes were not in the transcripts-file: "&query_genes.join(", ")
   
   for gene in genes:
       var u = gene.transcripts.union
@@ -110,7 +104,7 @@ proc save_transcripts_main() =
     flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
   
   var argv = commandLineParams()
-  if len(argv) > 0 and argv[0] == "generate-transcript-file":
+  if len(argv) > 0 and argv[0] == "save-transcripts":
     argv = argv[1..argv.high]
   if len(argv) == 0:
     argv.add("--help")
@@ -122,31 +116,6 @@ proc save_transcripts_main() =
   let g = get_genes(opts.genes.split(","), hg19=opts.hg19)
   writeFile(opts.output_path, $(pretty(%*g)))
   
-  
-  
-
-
-# export LD_LIBRARY_PATH=/usr/local/lib/
-# nim c --lineDir:on --debuginfo -r --threads:on src/seqcover.nim generate-transcript-file --hg19 --genes GJB1,SETX
-
-#[
-
-import sequtils
-var x: seq[string] = @["GJB1", "SETX", "PMP22"]
-
-# Add 
-x.add("MPZ")
-
-# Remove
-x.del(x.find("GJB1"))
-
-echo "The following genes were not found: "&x.join(", ")
-
-
-]#
-
-
-
 
 proc main() =
   type pair = object
