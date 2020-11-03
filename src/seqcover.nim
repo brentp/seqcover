@@ -75,8 +75,8 @@ proc report_main() =
   
   
   # If exists a transcripts-file - use instead of get_genes proc
-  query_genes = opts.genes.split(",")
-  genes: seq[Gene]
+  var query_genes = opts.genes.split(",")
+  var genes: seq[Gene]
   if opts.transcripts_file == "":
     genes = get_genes(query_genes, hg19=opts.hg19)
   else:
@@ -86,7 +86,7 @@ proc report_main() =
     # Check if file is present:
 
       
-    for gene in parseFile(opts.transcripts-file):
+    for gene in parseFile(opts.transcripts_file):
       if to(gene, Gene).symbol in query_genes:
         genes.add(to(gene, Gene))
         query_genes.del(query_genes.find(to(gene, Gene).symbol))
