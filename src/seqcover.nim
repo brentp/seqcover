@@ -45,10 +45,9 @@ proc report_main() =
     option("--genes", default="", help="comma-delimited list of genes for initial report")
     option("--fasta", default="", help="required path to fai indexed fasta file")
     option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
+    option("-t", "--transcripts-file", default="", help="path to transcript file for use if no internet connection (can be made with the save-transcripts option)")
     flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
-    # Added option for transcripts-file
-    option("-t", "--transcripts-file", default="", help="path to transcript file for use if no internet connection (can be made with the save-transcripts option)")
 
   var argv = commandLineParams()
   if len(argv) > 0 and argv[0] == "report":
@@ -73,19 +72,8 @@ proc report_main() =
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
   var gpt: seq[GenePlotData]
   
-  # If exists a transcripts-file - use instead of get_genes proc
-  var query_genes = opts.genes.split(",")
-  var genes: seq[Gene]
-  if opts.transcripts_file == "":
-    genes = get_genes(query_genes, hg19=opts.hg19)
-  else:
-    for gene in parseFile(opts.transcripts_file):
-      if to(gene, Gene).symbol in query_genes:
-        genes.add(to(gene, Gene))
-        query_genes.del(query_genes.find(to(gene, Gene).symbol))
-    if len(query_genes) > 0:
-      echo "The following genes were not in the transcripts-file: "&query_genes.join(", ")
-  
+  var genes = get_genes(opts.genes.split(","), hg19=opts.hg19, transcript_file=opts.transcripts_file)
+      
   for gene in genes:
       var u = gene.transcripts.union
       echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
