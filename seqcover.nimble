@@ -8,7 +8,7 @@ license       = "MIT"
 
 # Dependencies
 
-requires "https://github.com/brentp/d4-nim >= 0.0.1", "argparse", "binaryheap", "hts"
+requires "https://github.com/brentp/d4-nim >= 0.0.1", "argparse >= 0.7.0 & < 1.0", "binaryheap", "hts"
 srcDir = "src"
 installExt = @["nim"]
 
