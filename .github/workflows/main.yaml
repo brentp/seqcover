@@ -4,7 +4,7 @@ name: tests
 # events but only for the master branch
 on:
   push:
-    branches: [ master, dev, simplify ]
+    branches: [ master, dev]
   pull_request:
     branches: [ master ]
 
@@ -19,9 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        nimversion:
-        - stable
-        - devel
+        version:
+        - 1.2.8
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -34,9 +33,9 @@ jobs:
       with:
         node-version: '12'
 
-    - uses: iffy/install-nim@v1.1
+    - uses: iffy/install-nim@v3
       with:
-        nimversion: ${{ matrix.nimversion }}
+        version: ${{ matrix.version }}
 
     - uses: actions-rs/toolchain@v1
       with:
