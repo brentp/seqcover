@@ -4,7 +4,7 @@ name: tests
 # events but only for the master branch
 on:
   push:
-    branches: [ master, dev, simplify ]
+    branches: [ master, dev]
   pull_request:
     branches: [ master ]
 
@@ -19,21 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        nimversion:
-        - stable
-        - devel
+        version:
+        - 1.2.8
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+    - name: ACTIONS_ALLOW_UNSECURE_COMMANDS
+      id: ACTIONS_ALLOW_UNSECURE_COMMANDS
+      run: echo 'ACTIONS_ALLOW_UNSECURE_COMMANDS=true' >> $GITHUB_ENV
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v2-beta
       with:
         node-version: '12'
 
-    - uses: iffy/install-nim@v1.1
+    - uses: iffy/install-nim@v3
       with:
-        nimversion: ${{ matrix.nimversion }}
+        version: ${{ matrix.version }}
 
     - uses: actions-rs/toolchain@v1
       with:

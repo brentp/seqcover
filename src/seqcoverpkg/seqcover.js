@@ -434,11 +434,11 @@ function draw_heatmap() {
         title: "",
         margin: { t: 10 },
         height: 20 * y.length + 60,
-        width: 20 * x.length + 60,
+        width: 20 * x.length + 30,
         paper_bgcolor: '#f8f9fa',
-        uniformtext: {"mode": "show", "minsize": 2},
-        xaxis: { tickfont: {size: 12}, fixedrange: true},
-        yaxis: { fixedrange: true, },
+        uniformtext: { mode: 'show', minsize: 2 },
+        xaxis: { tickfont: { size: 12 }, fixedrange: true, automargin: true, },
+        yaxis: { fixedrange: true, automargin: true, },
         font: { size: 14 },
     }
     // TODO: this should be based on window width.
