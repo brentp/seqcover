@@ -63,6 +63,8 @@ proc chromosomes*(c:var Cover, fai:Fai): OrderedTableRef[string, uint32] =
     result = c.d4.chromosomes
   of CoverType.BED:
     result = newOrderedTable[string, uint32]()
+    if fai == nil:
+      raise newException(OSError, "--fasta index required when .bed.gz files are given")
     for i in 0..<fai.len:
       var cname = fai[i]
       result[cname] = fai.chrom_len(cname).uint32
