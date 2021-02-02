@@ -138,8 +138,14 @@ function get_depth_trace(gene) {
     }
 
     var i = -1;
+    var samples_ = []
 
     for (var sample in gene.plot_coords.depths) {
+        samples_.push(sample)
+    }
+    for (var sample of samples_.sort()) {
+
+
         i += 1
         var dp = gene.plot_coords.depths[sample]
         dp = dp.map(function (v) { return v < -1000 ? NaN : v })
@@ -308,10 +314,13 @@ function handle_hover(data, depth_traces, gene, gene_layout) {
     var columns = [{ title: "sample" }, { title: "transcript mean" }, { title: "CDS mean" }, { title: "selection mean" },
     { title: "transcript bases < lower" }, { title: "CDS bases < lower" }, { title: "selection bases < lower" }];
     var table = []
+    var samples_ = [];
 
     //var means = {}
     //hoverInfo.innerHTML = `${gene.unioned_transcript.chr}:${gstart}-${gstop}<br><ul>`
-    for (var sample in gene.plot_coords.depths) {
+    for (var sample in gene.plot_coords.depths) { samples_.push(sample) }
+    for (var sample of samples_.sort()) {
+
         var row = [sample, tx_stats[sample].mean.toFixed(2), cds_stats[sample].mean.toFixed(2), selection_stats[sample].mean.toFixed(2), tx_stats[sample].low, cds_stats[sample].low, selection_stats[sample].low]
         table.push(row)
         //let depths = gene.plot_coords.depths[sample];
@@ -408,10 +417,13 @@ function draw_heatmap() {
 
         var row = []
 
-        for (var s in stats) {
-            if (i == 0) {
-                x.push(s)
-            }
+        // get samples in alphabetical order
+        if (i == 0) {
+            for(var s in stats) { x.push(s) }
+            x = x.sort()
+        }
+
+        for(var s of x) {
             row.push(stats[s][metric])
         }
         // row is a set of samples for a given metric
