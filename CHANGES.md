@@ -1,6 +1,7 @@
-v0.0.4 (dev)
+v0.0.4
 ============
 + plot aesthetics (#23)
++ add sub-command `seqcover save-transcripts`
 
 v0.0.3
 ======
