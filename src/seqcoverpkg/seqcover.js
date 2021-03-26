@@ -449,7 +449,7 @@ function draw_heatmap() {
         width: 20 * x.length + 30,
         paper_bgcolor: '#f8f9fa',
         uniformtext: { mode: 'show', minsize: 2 },
-        xaxis: { tickfont: { size: 12 }, fixedrange: true, automargin: true, },
+        xaxis: { tickfont: { size: 12 }, fixedrange: true, automargin: true, type: "category"},
         yaxis: { fixedrange: true, automargin: true, },
         font: { size: 14 },
     }
