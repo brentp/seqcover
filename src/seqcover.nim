@@ -46,6 +46,7 @@ proc report_main() =
     option("--fasta", default="", help="required path to fai indexed fasta file")
     option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
     option("-t", "--transcripts-file", default="", help="path to transcript file for use if no internet connection (can be made with the save-transcripts option)")
+    option("--extend-intron", default="10",help="The number of nucleotides to extend into the intron")
     flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
 
@@ -77,10 +78,10 @@ proc report_main() =
   for gene in genes:
       var u = gene.transcripts.union
       echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
-      var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
+      var pd = gene.plot_data(sample_d4s, backgrounds, extend=opt.extend_intron.int, fai=fa, max_gap=50)
       gpt.add(pd)
 
-  gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
+  gpt.sort(proc(a, b: GenePlotData):.int int = cmp(a.symbol, b.symbol))
 
   write_html(opts.report_path, gpt)
   stderr.write_line &"[seqcover] wrote report to:{opts.report_path}"
