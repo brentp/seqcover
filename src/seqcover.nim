@@ -68,6 +68,12 @@ proc report_main() =
   if not fa.open(opts.fasta):
     quit "[seqcover] couldn't open fasta file"
 
+  var extend_intron = parseInt(opts.extend_intron) 
+  if extend_intron < 0:
+    echo p.help
+    stderr.write_line "--extend-intron must be >= 0"
+    quit 1
+
   var backgrounds = read_d4s_to_table(@[opts.background])
   var sample_d4s = read_d4s_to_table(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
@@ -78,7 +84,7 @@ proc report_main() =
   for gene in genes:
       var u = gene.transcripts.union
       echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
-      var pd = gene.plot_data(sample_d4s, backgrounds, extend=opts.extend_intron.int, fai=fa, max_gap=50)
+      var pd = gene.plot_data(sample_d4s, backgrounds, extend=extend_intron, fai=fa, max_gap=50)
       gpt.add(pd)
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
