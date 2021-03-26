@@ -81,7 +81,7 @@ proc report_main() =
       var pd = gene.plot_data(sample_d4s, backgrounds, extend=opt.extend_intron.int, fai=fa, max_gap=50)
       gpt.add(pd)
 
-  gpt.sort(proc(a, b: GenePlotData):.int int = cmp(a.symbol, b.symbol))
+  gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
 
   write_html(opts.report_path, gpt)
   stderr.write_line &"[seqcover] wrote report to:{opts.report_path}"
