@@ -78,7 +78,7 @@ proc report_main() =
   for gene in genes:
       var u = gene.transcripts.union
       echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
-      var pd = gene.plot_data(sample_d4s, backgrounds, extend=opt.extend_intron.int, fai=fa, max_gap=50)
+      var pd = gene.plot_data(sample_d4s, backgrounds, extend=opts.extend_intron.int, fai=fa, max_gap=50)
       gpt.add(pd)
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
