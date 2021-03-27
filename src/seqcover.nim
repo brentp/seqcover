@@ -46,6 +46,7 @@ proc report_main() =
     option("--fasta", default="", help="required path to fai indexed fasta file")
     option("-r", "--report-path", default="seqcover_report.html", help="path to html report to be written")
     option("-t", "--transcripts-file", default="", help="path to transcript file for use if no internet connection (can be made with the save-transcripts option)")
+    option("--extend-intron", default="10",help="The number of nucleotides to extend into the intron")
     flag("--hg19", help="coordinates are in hg19/GRCh37 (default is hg38).")
     arg("samples", nargs= -1, help="d4 files, bed files or a glob of d4 or bed files")
 
@@ -67,6 +68,12 @@ proc report_main() =
   if not fa.open(opts.fasta):
     quit "[seqcover] couldn't open fasta file"
 
+  var extend_intron = parseInt(opts.extend_intron) 
+  if extend_intron < 0:
+    echo p.help
+    stderr.write_line "--extend-intron must be >= 0"
+    quit 1
+
   var backgrounds = read_d4s_to_table(@[opts.background])
   var sample_d4s = read_d4s_to_table(opts.samples)
   stderr.write_line &"[seqcover] read {sample_d4s.len} sample coverage files"
@@ -77,7 +84,7 @@ proc report_main() =
   for gene in genes:
       var u = gene.transcripts.union
       echo &"{u.chr}\t{u.txstart - 500}\t{u.txend + 500}"
-      var pd = gene.plot_data(sample_d4s, backgrounds, extend=10, fai=fa, max_gap=50)
+      var pd = gene.plot_data(sample_d4s, backgrounds, extend=extend_intron.uint32, fai=fa, max_gap=50)
       gpt.add(pd)
 
   gpt.sort(proc(a, b: GenePlotData): int = cmp(a.symbol, b.symbol))
