@@ -161,12 +161,17 @@ proc `%`*[T](table: TableRef[string, T]): JsonNode =
 
 proc get_chrom(chrom:string, dp:var Cover, fai:Fai): string =
   ## add or remove "chr" to match chromosome names.
+  const MTs = ["MT", "CHRM", "CHRMT", "M"]
   var chroms = dp.chromosomes(fai)
   if chrom in chroms: return chrom
   if chrom[0] != 'c' and ("chr" & chrom) in chroms:
     result = "chr" & chrom
   elif chrom[0] == 'c' and chrom.len > 3 and chrom[1] == 'h' and chrom[2] == 'r' and chrom[3..chrom.high] in chroms:
     result = chrom[3..chrom.high]
+  elif chrom.toUpperAscii in MTs: # try all the MT chroms.
+    for c in MTs:
+      if c in chroms:
+        return c
   else:
     raise newException(KeyError, "chromosome not found:" & chrom)
 

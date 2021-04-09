@@ -1,3 +1,7 @@
+v0.0.5
+======
++ handle more chrMT namings
+
 v0.0.4
 ============
 + plot aesthetics (#23)
