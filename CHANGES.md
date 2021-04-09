@@ -1,6 +1,8 @@
 v0.0.5
 ======
 + handle more chrMT namings
++ allow extending introns
++ fix bug where sample names were converted to dates
 
 v0.0.4
 ============
